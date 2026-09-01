@@ -1,0 +1,31 @@
+# Пользовательский systemd-юнит для ОТДЕЛЬНОГО веб-интерфейса.
+#
+# Ставится на хост, где нужен UI, — там не нужны ни CS2, ни sway, ни GPU:
+#   mkdir -p ~/.config/systemd/user
+#   cp systemd/cs2-cutter-ui.service ~/.config/systemd/user/
+#   systemctl --user edit cs2-cutter-ui   # поправить CS2_API_BASE под свой бэкенд
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now cs2-cutter-ui
+#   loginctl enable-linger $USER
+#
+# Бэкенд с рендером — отдельный репозиторий (cs2_cutter) и отдельный юнит
+# cs2-cutter.service, обычно на другой машине.
+
+[Unit]
+Description=CS2 Highlight Cutter (только веб-интерфейс)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+WorkingDirectory=%h/PycharmProjects/cs2_cutter_ui
+# Адрес бэкенда с CS2 — главный параметр этого юнита.
+Environment=CS2_API_BASE=http://192.168.0.4:8000
+Environment=UI_HOST=0.0.0.0
+Environment=UI_PORT=8080
+ExecStart=%h/PycharmProjects/cs2_cutter_ui/serve_ui.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

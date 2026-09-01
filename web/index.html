@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CS2 Highlight Cutter</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1e232c; --line: #2a303b;
+    --text: #e6e9ef; --muted: #8b94a5; --accent: #f0932b; --ok: #4caf50;
+    --err: #e74c3c; --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    padding: 18px 24px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  h1 { font-size: 19px; margin: 0; font-weight: 600; }
+  .env { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--err); }
+  .api { font-size: 12px; color: var(--muted); background: var(--panel-2);
+         border: 1px solid var(--line); border-radius: 20px; padding: 2px 9px; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px; display: grid; gap: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em;
+             color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+  select, input, button {
+    font: inherit; color: var(--text); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%;
+  }
+  input[type=file] { padding: 7px; }
+  button {
+    background: var(--accent); color: #1a1200; border: none; font-weight: 600;
+    cursor: pointer; width: auto; padding: 10px 20px;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+  .actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .hint { font-size: 13px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--panel-2); }
+  tbody tr.selected { background: #2a2213; outline: 1px solid var(--accent); }
+  .job { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; background: var(--panel-2); }
+  .job-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .badge { font-size: 12px; padding: 2px 9px; border-radius: 20px; background: var(--line); }
+  .badge.processing { background: #3a2f12; color: var(--accent); }
+  .badge.completed { background: #16321a; color: var(--ok); }
+  .badge.failed { background: #3a1a17; color: var(--err); }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; margin: 10px 0; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+  .clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
+  .clip { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 13px; }
+  .clip video { width: 100%; border-radius: 6px; background: #000; margin-bottom: 8px; }
+  .clip a { color: var(--accent); }
+  .empty { color: var(--muted); font-size: 14px; }
+  .err { color: var(--err); font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎬 CS2 Highlight Cutter</h1>
+  <div class="env">
+    <span class="dot" id="env-dot"></span>
+    <span id="env-text">проверяю среду…</span>
+    <span class="api" id="env-api" title="Бэкенд, к которому подключён этот UI"></span>
+    <button class="ghost" id="env-restart" style="display:none; padding:5px 12px; font-size:13px">
+      Перезапустить CS2
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. Демка</h2>
+    <div class="row">
+      <div>
+        <label for="demo">Из папки сервера</label>
+        <select id="demo"></select>
+      </div>
+      <div>
+        <label for="upload">Или загрузить .dem / .dem.zst</label>
+        <input type="file" id="upload" accept=".dem,.zst">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="analyze">Разобрать демку</button>
+      <span class="hint" id="demo-hint"></span>
+    </div>
+  </section>
+
+  <section class="card" id="players-card" style="display:none">
+    <h2>2. Игрок</h2>
+    <table>
+      <thead><tr><th>Ник</th><th>Киллы</th><th>ХС</th><th>Раунды</th><th>Оружие</th></tr></thead>
+      <tbody id="players"></tbody>
+    </table>
+  </section>
+
+  <section class="card" id="params-card" style="display:none">
+    <h2>3. Параметры нарезки</h2>
+    <div class="row">
+      <div><label for="min-kills">Мин. фрагов в клипе</label>
+        <input type="number" id="min-kills" value="2" min="1" max="5"></div>
+      <div><label for="pre">Секунд до фрага</label>
+        <input type="number" id="pre" value="8" min="1" max="30" step="0.5"></div>
+      <div><label for="post">Секунд после</label>
+        <input type="number" id="post" value="5" min="1" max="30" step="0.5"></div>
+      <div><label for="only-hs">Только хедшоты</label>
+        <select id="only-hs"><option value="false">нет</option><option value="true">да</option></select></div>
+      <div><label for="xray" title="spec_show_xray: враги светятся сквозь стены. CS2 включает его по умолчанию, в хайлайтах обычно лишний">Рентген сквозь стены</label>
+        <select id="xray"><option value="false">нет</option><option value="true">да</option></select></div>
+    </div>
+    <div class="actions">
+      <button id="start">Записать хайлайты</button>
+      <span class="hint" id="start-hint"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Задачи</h2>
+    <div id="jobs"><p class="empty">Задач пока нет.</p></div>
+  </section>
+</main>
+
+<!-- Адрес бэкенда для развёрнутого UI. Файл всегда существует, чтобы не
+     ловить 404 в консоли; правится при деплое или генерируется serve_ui.sh. -->
+<script src="config.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { demoId: null, player: null, jobs: new Map() };
+
+// ---------- адрес бэкенда ----------
+// UI и бэкенд с CS2 могут жить на разных хостах, поэтому базовый адрес API
+// настраивается. Приоритет источников — от самого частного к общему:
+//   1. ?api=http://host:port  — разовый оверрайд, запоминается в localStorage;
+//      ?api= без значения сбрасывает запомненный адрес;
+//   2. localStorage           — ранее выбранный оверрайд;
+//   3. window.CS2_API_BASE    — config.js, то есть настройка деплоя;
+//   4. пустая строка          — тот же origin (бэкенд сам раздаёт статику).
+const API_BASE_KEY = "cs2_api_base";
+const API_BASE = (() => {
+  const norm = (v) => (v || "").trim().replace(/\/+$/, "");
+  const q = new URLSearchParams(location.search);
+  if (q.has("api")) {
+    const v = norm(q.get("api"));
+    try {
+      if (v) localStorage.setItem(API_BASE_KEY, v);
+      else localStorage.removeItem(API_BASE_KEY);
+    } catch {}
+    if (v) return v;
+  }
+  try {
+    const saved = norm(localStorage.getItem(API_BASE_KEY));
+    if (saved) return saved;
+  } catch {}
+  return norm(window.CS2_API_BASE);
+})();
+
+// Пути вида "/api/..." — и те, что бэкенд присылает в file_url/zip_url.
+const api = (path) => API_BASE + path;
+const API_LABEL = API_BASE || location.origin;
+
+// ---------- среда записи ----------
+async function refreshEnv() {
+  try {
+    const s = await (await fetch(api("/api/session"))).json();
+    const dot = $("env-dot"), text = $("env-text");
+    if (!s.enabled) {
+      dot.className = "dot ok";
+      text.textContent = "режим: рабочий стол (OBS)";
+      return;
+    }
+    const ready = s.session_running && s.cs2_ready;
+    dot.className = "dot " + (ready ? "ok" : "bad");
+    text.textContent = ready
+      ? `headless ${s.resolution} · CS2 готова`
+      : `headless · ${s.session_running ? "CS2 не запущена" : "сессия не поднята"}`;
+    $("env-restart").style.display = ready ? "none" : "inline-block";
+  } catch {
+    $("env-dot").className = "dot bad";
+    // Когда UI и бэкенд разнесены, «недоступен» почти всегда означает не тот
+    // адрес или закрытый порт — поэтому сразу называем адрес.
+    $("env-text").textContent = `бэкенд недоступен: ${API_LABEL}`;
+  }
+}
+$("env-restart").onclick = async () => {
+  $("env-restart").disabled = true;
+  $("env-text").textContent = "перезапускаю CS2…";
+  try { await fetch(api("/api/session/restart"), { method: "POST" }); } catch {}
+  $("env-restart").disabled = false;
+  refreshEnv();
+};
+
+// ---------- демки ----------
+async function loadDemos(selectId) {
+  const demos = await (await fetch(api("/api/demos"))).json();
+  const sel = $("demo");
+  sel.innerHTML = "";
+  for (const d of demos) {
+    const o = document.createElement("option");
+    o.value = d.id;
+    o.textContent = `${d.filename} (${d.size_mb} МБ)`;
+    sel.appendChild(o);
+  }
+  if (selectId) sel.value = selectId;
+  if (!demos.length) sel.innerHTML = "<option value=''>— нет демок —</option>";
+}
+
+$("upload").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  $("demo-hint").textContent = `Загружаю ${file.name}…`;
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    const res = await fetch(api("/api/upload"), { method: "POST", body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail);
+    const info = await res.json();
+    await loadDemos(info.id);
+    showPlayers(info);
+    $("demo-hint").textContent = `Готово: ${info.filename}`;
+  } catch (err) {
+    $("demo-hint").textContent = "Ошибка загрузки: " + err.message;
+  }
+};
+
+$("analyze").onclick = async () => {
+  const id = $("demo").value;
+  if (!id) return;
+  $("analyze").disabled = true;
+  $("demo-hint").textContent = "Разбираю демку (может занять минуту)…";
+  try {
+    const info = await (await fetch(api(`/api/demo/${encodeURIComponent(id)}/players`))).json();
+    showPlayers(info);
+    $("demo-hint").textContent = `${info.total_rounds} раундов, игроков: ${info.players.length}`;
+  } catch (err) {
+    $("demo-hint").textContent = "Не удалось разобрать демку";
+  }
+  $("analyze").disabled = false;
+};
+
+function showPlayers(info) {
+  state.demoId = info.id;
+  const tbody = $("players");
+  tbody.innerHTML = "";
+  for (const p of info.players) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${p.name}</td><td>${p.kills}</td><td>${p.headshots}</td>
+                    <td>${p.rounds_active}</td><td>${(p.weapons || []).slice(0, 4).join(", ")}</td>`;
+    tr.onclick = () => {
+      [...tbody.children].forEach(r => r.classList.remove("selected"));
+      tr.classList.add("selected");
+      state.player = p.name;
+      $("params-card").style.display = "block";
+      $("start-hint").textContent = `Игрок: ${p.name}`;
+    };
+    tbody.appendChild(tr);
+  }
+  $("players-card").style.display = "block";
+}
+
+// ---------- задачи ----------
+$("start").onclick = async () => {
+  if (!state.demoId || !state.player) return;
+  $("start").disabled = true;
+  try {
+    const res = await fetch(api("/api/jobs"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        demo_id: state.demoId,
+        player_name: state.player,
+        min_kills: +$("min-kills").value,
+        only_headshots: $("only-hs").value === "true",
+        pre_kill_sec: +$("pre").value,
+        post_kill_sec: +$("post").value,
+        xray: $("xray").value === "true",
+      }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail);
+    renderJob(await res.json());
+  } catch (err) {
+    $("start-hint").textContent = "Ошибка: " + err.message;
+  }
+  $("start").disabled = false;
+};
+
+function renderJob(job) {
+  state.jobs.set(job.id, job);
+  const container = $("jobs");
+  const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
+  container.innerHTML = sorted.map(jobHtml).join("") ||
+    "<p class='empty'>Задач пока нет.</p>";
+}
+
+function jobHtml(j) {
+  const clips = (j.clips || []).map(c => `
+    <div class="clip">
+      <video controls preload="metadata" src="${api(c.file_url)}"></video>
+      <div><b>Раунд ${c.round_num}</b> · ${c.kills_count}k · ${c.duration_sec}s · ${c.size_mb} МБ</div>
+      <div><a href="${api(c.file_url)}" download target="_blank" rel="noopener">${c.filename}</a></div>
+    </div>`).join("");
+  return `
+    <div class="job">
+      <div class="job-head">
+        <div><b>${j.player_name}</b> <span class="hint">· ${j.demo_id}</span></div>
+        <span class="badge ${j.status}">${j.status}</span>
+      </div>
+      <div class="bar"><i style="width:${j.progress_percent}%"></i></div>
+      <div class="hint">${j.current_step || ""}${j.total_clips ? ` · клип ${j.current_clip_index}/${j.total_clips}` : ""}</div>
+      ${j.error_message ? `<div class="err">${j.error_message}</div>` : ""}
+      ${j.zip_url ? `<div class="actions"><a href="${api(j.zip_url)}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
+      <div class="clips">${clips}</div>
+    </div>`;
+}
+
+// ---------- живые обновления ----------
+const es = new EventSource(api("/api/events"));
+es.addEventListener("initial", (e) => {
+  for (const j of JSON.parse(e.data)) state.jobs.set(j.id, j);
+  renderJob0();
+});
+es.addEventListener("job_update", (e) => {
+  const j = JSON.parse(e.data);
+  state.jobs.set(j.id, j);
+  renderJob0();
+  if (j.status === "processing" || j.status === "failed") refreshEnv();
+});
+function renderJob0() {
+  const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
+  $("jobs").innerHTML = sorted.map(jobHtml).join("") || "<p class='empty'>Задач пока нет.</p>";
+}
+
+$("env-api").textContent = API_LABEL;
+loadDemos();
+refreshEnv();
+setInterval(refreshEnv, 15000);
+</script>
+</body>
+</html>
