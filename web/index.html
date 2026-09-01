@@ -64,18 +64,81 @@
   .clip a { color: var(--accent); }
   .empty { color: var(--muted); font-size: 14px; }
   .err { color: var(--err); font-size: 13px; margin-top: 8px; }
+  /* --- библиотека фрагментов --- */
+  .drop {
+    border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 18px;
+    text-align: center; color: var(--muted); font-size: 14px; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--panel-2); }
+  .drop b { color: var(--text); }
+  .up-row { display: flex; align-items: center; gap: 10px; font-size: 13px; margin-top: 10px; }
+  .up-row .bar { flex: 1; margin: 0; }
+  .up-name { max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lib-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 16px 0 12px; }
+  .lib-tools input[type=search] { width: auto; flex: 1; min-width: 160px; }
+  .chip {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 20px; padding: 5px 13px; font-size: 13px; cursor: pointer; width: auto;
+  }
+  .chip.on { border-color: var(--accent); color: var(--accent); }
+  .frags { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .frag { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .frag .thumb {
+    position: relative; aspect-ratio: 16/9; background: #000; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .frag .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .frag .thumb .noimg { color: var(--muted); font-size: 12px; }
+  .frag .dur {
+    position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.75);
+    border-radius: 4px; padding: 1px 6px; font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .frag-body { padding: 9px 10px; font-size: 13px; }
+  .frag-title { font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
+  .frag-meta { color: var(--muted); font-size: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .frag-acts { display: flex; gap: 6px; margin-top: 8px; }
+  .frag-acts button { padding: 4px 9px; font-size: 12px; }
+  .badge.demo { background: #16321a; color: var(--ok); }
+  .badge.upload { background: #1b2740; color: #7aa2f7; }
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.8); display: flex;
+    align-items: center; justify-content: center; padding: 24px; z-index: 50;
+  }
+  .modal .box { background: var(--panel); border: 1px solid var(--line);
+                border-radius: var(--radius); padding: 14px; max-width: 900px; width: 100%; }
+  .modal video { width: 100%; max-height: 70vh; background: #000; border-radius: 6px; }
 </style>
 </head>
 <body>
+<div id="login-screen" style="display:none; max-width:340px; margin:80px auto; padding:24px;" class="card">
+  <h2 style="margin-top:0">Вход</h2>
+  <div style="display:grid; gap:10px">
+    <div>
+      <label for="login-user">Логин</label>
+      <input id="login-user" autocomplete="username">
+    </div>
+    <div>
+      <label for="login-pass">Пароль</label>
+      <input id="login-pass" type="password" autocomplete="current-password">
+    </div>
+    <button id="login-submit">Войти</button>
+    <div class="err" id="login-error" style="display:none"></div>
+  </div>
+</div>
+
+<div id="app-root" style="display:none">
 <header>
   <h1>🎬 CS2 Highlight Cutter</h1>
   <div class="env">
     <span class="dot" id="env-dot"></span>
     <span id="env-text">проверяю среду…</span>
-    <span class="api" id="env-api" title="Бэкенд, к которому подключён этот UI"></span>
+    <span class="api" id="env-api" title="Рендер-бэкенд: нарезка и запись клипов"></span>
+    <span class="api" id="env-lib" title="Сервис библиотеки фрагментов и авторизации"></span>
     <button class="ghost" id="env-restart" style="display:none; padding:5px 12px; font-size:13px">
       Перезапустить CS2
     </button>
+    <button class="ghost" id="logout" style="padding:5px 12px; font-size:13px">Выйти</button>
   </div>
 </header>
 
@@ -126,11 +189,34 @@
     </div>
   </section>
 
+  <section class="card" id="library-card">
+    <h2>Библиотека фрагментов</h2>
+
+    <div class="drop" id="frag-drop">
+      <b>Перетащите сюда свои клипы</b> или нажмите, чтобы выбрать
+      <div class="hint" id="frag-limits" style="margin-top:4px"></div>
+    </div>
+    <input type="file" id="frag-file" multiple style="display:none">
+    <div id="frag-uploads"></div>
+
+    <div class="lib-tools">
+      <button class="chip on" data-src="">Все</button>
+      <button class="chip" data-src="demo">Из демок</button>
+      <button class="chip" data-src="upload">Свои</button>
+      <input type="search" id="frag-search" placeholder="Поиск по названию или тегу">
+      <span class="hint" id="frag-stats"></span>
+    </div>
+
+    <div class="frags" id="frags"></div>
+    <p class="empty" id="frags-empty">Библиотека пуста.</p>
+  </section>
+
   <section class="card">
     <h2>Задачи</h2>
     <div id="jobs"><p class="empty">Задач пока нет.</p></div>
   </section>
 </main>
+</div>
 
 <!-- Адрес бэкенда для развёрнутого UI. Файл всегда существует, чтобы не
      ловить 404 в консоли; правится при деплое или генерируется serve_ui.sh. -->
@@ -170,10 +256,114 @@ const API_BASE = (() => {
 const api = (path) => API_BASE + path;
 const API_LABEL = API_BASE || location.origin;
 
+// ---------- адрес библиотеки ----------
+// Библиотека фрагментов и авторизация живут в отдельном сервисе
+// (cs2_cutter_backend): рендер-хост занят CS2 и GPU, его перезапускают, а
+// библиотека должна открываться и когда игра не запущена. Источники адреса —
+// те же, что у API_BASE (?lib=… → localStorage → config.js), а по умолчанию
+// это сам API_BASE: при слитом в один сервис бэкенде ничего настраивать не надо.
+const LIB_BASE_KEY = "cs2_lib_base";
+const LIB_BASE = (() => {
+  const norm = (v) => (v || "").trim().replace(/\/+$/, "");
+  const q = new URLSearchParams(location.search);
+  if (q.has("lib")) {
+    const v = norm(q.get("lib"));
+    try {
+      if (v) localStorage.setItem(LIB_BASE_KEY, v);
+      else localStorage.removeItem(LIB_BASE_KEY);
+    } catch {}
+    if (v) return v;
+  }
+  try {
+    const saved = norm(localStorage.getItem(LIB_BASE_KEY));
+    if (saved) return saved;
+  } catch {}
+  return norm(window.CS2_LIBRARY_BASE) || API_BASE;
+})();
+const lib = (path) => LIB_BASE + path;
+const LIB_LABEL = LIB_BASE || location.origin;
+// Для <video src>, <a href download> и EventSource заголовок Authorization
+// не отправить — бэкенд принимает токен и через query (см. cs2_cutter_backend).
+const withToken = (url) => {
+  const token = getToken();
+  if (!token) return url;
+  return url + (url.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(token);
+};
+const apiAuth = (path) => withToken(api(path));
+const libAuth = (path) => withToken(lib(path));
+
+// ---------- авторизация (JWT) ----------
+// Токен получаем через POST /api/auth/login и дальше шлём заголовком
+// Authorization: Bearer <token> на каждый запрос к бэкенду. Для SSE
+// (EventSource не умеет слать заголовки) токен передаётся в query — см.
+// startEvents().
+const TOKEN_KEY = "cs2_jwt_token";
+const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
+const setToken = (t) => { try { localStorage.setItem(TOKEN_KEY, t); } catch {} };
+const clearToken = () => { try { localStorage.removeItem(TOKEN_KEY); } catch {} };
+
+async function authFetch(url, opts = {}) {
+  const token = getToken();
+  const headers = { ...(opts.headers || {}) };
+  if (token) headers["Authorization"] = "Bearer " + token;
+  const res = await fetch(url, { ...opts, headers });
+  if (res.status === 401) {
+    clearToken();
+    showLogin("Сессия истекла, войдите снова");
+    throw new Error("не авторизован");
+  }
+  return res;
+}
+
+function showLogin(message) {
+  $("app-root").style.display = "none";
+  $("login-screen").style.display = "block";
+  $("login-error").style.display = message ? "block" : "none";
+  $("login-error").textContent = message || "";
+}
+
+function showApp() {
+  $("login-screen").style.display = "none";
+  $("app-root").style.display = "block";
+}
+
+$("login-submit").onclick = async () => {
+  const username = $("login-user").value.trim();
+  const password = $("login-pass").value;
+  if (!username || !password) return;
+  $("login-submit").disabled = true;
+  $("login-error").style.display = "none";
+  try {
+    // Авторизация живёт вместе с библиотекой, а не на рендер-хосте.
+    const res = await fetch(lib("/api/auth/login"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || "Ошибка входа");
+    const { access_token } = await res.json();
+    setToken(access_token);
+    $("login-pass").value = "";
+    showApp();
+    initApp();
+  } catch (err) {
+    $("login-error").textContent = err.message;
+    $("login-error").style.display = "block";
+  }
+  $("login-submit").disabled = false;
+};
+$("login-pass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("login-submit").click(); });
+
+$("logout").onclick = () => {
+  clearToken();
+  if (window._es) window._es.close();
+  showLogin();
+};
+
 // ---------- среда записи ----------
 async function refreshEnv() {
   try {
-    const s = await (await fetch(api("/api/session"))).json();
+    const s = await (await authFetch(api("/api/session"))).json();
     const dot = $("env-dot"), text = $("env-text");
     if (!s.enabled) {
       dot.className = "dot ok";
@@ -196,14 +386,14 @@ async function refreshEnv() {
 $("env-restart").onclick = async () => {
   $("env-restart").disabled = true;
   $("env-text").textContent = "перезапускаю CS2…";
-  try { await fetch(api("/api/session/restart"), { method: "POST" }); } catch {}
+  try { await authFetch(api("/api/session/restart"), { method: "POST" }); } catch {}
   $("env-restart").disabled = false;
   refreshEnv();
 };
 
 // ---------- демки ----------
 async function loadDemos(selectId) {
-  const demos = await (await fetch(api("/api/demos"))).json();
+  const demos = await (await authFetch(api("/api/demos"))).json();
   const sel = $("demo");
   sel.innerHTML = "";
   for (const d of demos) {
@@ -223,7 +413,7 @@ $("upload").onchange = async (e) => {
   const fd = new FormData();
   fd.append("file", file);
   try {
-    const res = await fetch(api("/api/upload"), { method: "POST", body: fd });
+    const res = await authFetch(api("/api/upload"), { method: "POST", body: fd });
     if (!res.ok) throw new Error((await res.json()).detail);
     const info = await res.json();
     await loadDemos(info.id);
@@ -240,7 +430,7 @@ $("analyze").onclick = async () => {
   $("analyze").disabled = true;
   $("demo-hint").textContent = "Разбираю демку (может занять минуту)…";
   try {
-    const info = await (await fetch(api(`/api/demo/${encodeURIComponent(id)}/players`))).json();
+    const info = await (await authFetch(api(`/api/demo/${encodeURIComponent(id)}/players`))).json();
     showPlayers(info);
     $("demo-hint").textContent = `${info.total_rounds} раундов, игроков: ${info.players.length}`;
   } catch (err) {
@@ -274,7 +464,7 @@ $("start").onclick = async () => {
   if (!state.demoId || !state.player) return;
   $("start").disabled = true;
   try {
-    const res = await fetch(api("/api/jobs"), {
+    const res = await authFetch(api("/api/jobs"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -306,9 +496,9 @@ function renderJob(job) {
 function jobHtml(j) {
   const clips = (j.clips || []).map(c => `
     <div class="clip">
-      <video controls preload="metadata" src="${api(c.file_url)}"></video>
+      <video controls preload="metadata" src="${apiAuth(c.file_url)}"></video>
       <div><b>Раунд ${c.round_num}</b> · ${c.kills_count}k · ${c.duration_sec}s · ${c.size_mb} МБ</div>
-      <div><a href="${api(c.file_url)}" download target="_blank" rel="noopener">${c.filename}</a></div>
+      <div><a href="${apiAuth(c.file_url)}" download target="_blank" rel="noopener">${c.filename}</a></div>
     </div>`).join("");
   return `
     <div class="job">
@@ -319,32 +509,277 @@ function jobHtml(j) {
       <div class="bar"><i style="width:${j.progress_percent}%"></i></div>
       <div class="hint">${j.current_step || ""}${j.total_clips ? ` · клип ${j.current_clip_index}/${j.total_clips}` : ""}</div>
       ${j.error_message ? `<div class="err">${j.error_message}</div>` : ""}
-      ${j.zip_url ? `<div class="actions"><a href="${api(j.zip_url)}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
+      ${j.zip_url ? `<div class="actions"><a href="${apiAuth(j.zip_url)}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
       <div class="clips">${clips}</div>
     </div>`;
 }
 
 // ---------- живые обновления ----------
-const es = new EventSource(api("/api/events"));
-es.addEventListener("initial", (e) => {
-  for (const j of JSON.parse(e.data)) state.jobs.set(j.id, j);
-  renderJob0();
-});
-es.addEventListener("job_update", (e) => {
-  const j = JSON.parse(e.data);
-  state.jobs.set(j.id, j);
-  renderJob0();
-  if (j.status === "processing" || j.status === "failed") refreshEnv();
-});
+function startEvents() {
+  if (window._es) window._es.close();
+  const es = new EventSource(apiAuth("/api/events"));
+  window._es = es;
+  es.addEventListener("initial", (e) => {
+    for (const j of JSON.parse(e.data)) state.jobs.set(j.id, j);
+    renderJob0();
+  });
+  es.addEventListener("job_update", (e) => {
+    const j = JSON.parse(e.data);
+    state.jobs.set(j.id, j);
+    renderJob0();
+    if (j.status === "processing" || j.status === "failed") refreshEnv();
+    // Рендер-хост шлёт клипы в библиотеку фоном, уже после записи, поэтому
+    // ждать конца задачи нельзя — обновляем список на каждом событии, но не
+    // чаще раза в несколько секунд.
+    scheduleLibraryRefresh();
+  });
+}
 function renderJob0() {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
   $("jobs").innerHTML = sorted.map(jobHtml).join("") || "<p class='empty'>Задач пока нет.</p>";
 }
 
-$("env-api").textContent = API_LABEL;
-loadDemos();
-refreshEnv();
-setInterval(refreshEnv, 15000);
+// ---------- библиотека фрагментов ----------
+// Названия фрагментов задаёт человек (загрузка, переименование), поэтому в
+// разметку они попадают только через esc(): иначе кавычка в имени файла ломает
+// атрибут, а <img onerror> из названия выполнится как скрипт.
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const libState = { source: "", query: "", items: [], limits: null };
+
+const fmtDur = (sec) => {
+  const s = Math.max(0, Math.round(sec || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+async function loadLibrary() {
+  const params = new URLSearchParams();
+  if (libState.source) params.set("source", libState.source);
+  if (libState.query) params.set("q", libState.query);
+  const qs = params.toString();
+  try {
+    const data = await (await authFetch(lib("/api/library" + (qs ? "?" + qs : "")))).json();
+    libState.items = data.fragments || [];
+    libState.limits = data.limits || null;
+    renderLibrary(data.stats);
+  } catch (err) {
+    $("frags").innerHTML = "";
+    $("frags-empty").style.display = "block";
+    $("frags-empty").textContent = `Библиотека недоступна: ${LIB_LABEL}`;
+  }
+}
+
+function renderLibrary(stats) {
+  const grid = $("frags");
+  grid.innerHTML = libState.items.map(fragHtml).join("");
+  const empty = $("frags-empty");
+  empty.style.display = libState.items.length ? "none" : "block";
+  empty.textContent = (libState.source || libState.query)
+    ? "Под фильтр ничего не подошло." : "Библиотека пуста.";
+
+  if (stats) {
+    const mins = Math.round((stats.total_duration_sec || 0) / 60);
+    $("frag-stats").textContent = stats.count
+      ? `${stats.count} шт · ${mins} мин · ${Math.round(stats.total_size_mb)} МБ`
+      : "";
+  }
+  if (libState.limits) {
+    $("frag-limits").textContent =
+      `${libState.limits.allowed_ext.join(" ")} · до ${libState.limits.max_upload_mb} МБ`;
+  }
+}
+
+function fragHtml(f) {
+  const thumb = f.thumb_url
+    ? `<img src="${esc(libAuth(f.thumb_url))}" alt="" loading="lazy">`
+    : `<span class="noimg">без превью</span>`;
+  const res = f.width ? `${f.width}×${f.height}` : "?";
+  const origin = f.origin && f.origin.player_name ? esc(f.origin.player_name) : null;
+  return `
+    <div class="frag" data-id="${esc(f.id)}">
+      <div class="thumb" data-act="play">${thumb}<span class="dur">${fmtDur(f.duration_sec)}</span></div>
+      <div class="frag-body">
+        <div class="frag-title">${esc(f.title)}</div>
+        <div class="frag-meta">
+          <span class="badge ${f.source === "demo" ? "demo" : "upload"}">${f.source === "demo" ? "демка" : "своё"}</span>
+          <span>${res}</span><span>${Math.round(f.fps || 0)} fps</span><span>${f.size_mb} МБ</span>
+          ${origin ? `<span>· ${origin}</span>` : ""}
+        </div>
+        <div class="frag-acts">
+          <button class="ghost" data-act="rename">Переименовать</button>
+          <button class="ghost" data-act="delete">Удалить</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Делегирование, а не обработчик на каждой карточке: сетка целиком
+// перерисовывается после любой загрузки или правки.
+$("frags").onclick = async (e) => {
+  const btn = e.target.closest("[data-act]");
+  const card = e.target.closest(".frag");
+  if (!btn || !card) return;
+  const id = card.dataset.id;
+  const frag = libState.items.find((f) => f.id === id);
+  if (!frag) return;
+
+  if (btn.dataset.act === "play") return openPreview(frag);
+
+  if (btn.dataset.act === "rename") {
+    const title = prompt("Название фрагмента", frag.title);
+    if (title === null || title === frag.title) return;
+    await authFetch(lib(`/api/library/${encodeURIComponent(id)}`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+    return loadLibrary();
+  }
+
+  if (btn.dataset.act === "delete") {
+    if (!confirm(`Удалить «${frag.title}»? Файл будет стёрт с диска.`)) return;
+    await authFetch(lib(`/api/library/${encodeURIComponent(id)}`), { method: "DELETE" });
+    return loadLibrary();
+  }
+};
+
+function openPreview(frag) {
+  const box = document.createElement("div");
+  box.className = "modal";
+  box.innerHTML = `
+    <div class="box">
+      <video controls autoplay src="${esc(libAuth(frag.file_url))}"></video>
+      <div class="actions">
+        <span class="hint">${esc(frag.title)}</span>
+        <a href="${esc(libAuth(frag.file_url))}" download target="_blank" rel="noopener"
+           style="margin-left:auto"><button class="ghost">Скачать</button></a>
+        <button class="ghost" data-close>Закрыть</button>
+      </div>
+    </div>`;
+  const close = () => { box.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  // Клик мимо окна и Esc закрывают — иначе видео остаётся играть под оверлеем.
+  box.onclick = (e) => { if (e.target === box || e.target.hasAttribute("data-close")) close(); };
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(box);
+}
+
+// ---------- загрузка своих клипов ----------
+// XHR, а не fetch: у fetch нет прогресса отправки, а ролики здесь под сотню
+// мегабайт — без полосы непонятно, идёт загрузка или всё зависло.
+function uploadFragment(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", lib("/api/library/upload"));
+    const token = getToken();
+    if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status === 401) {
+        clearToken();
+        showLogin("Сессия истекла, войдите снова");
+        return reject(new Error("не авторизован"));
+      }
+      if (xhr.status !== 200) {
+        let detail = `HTTP ${xhr.status}`;
+        try { detail = JSON.parse(xhr.responseText).detail || detail; } catch {}
+        return reject(new Error(detail));
+      }
+      resolve(JSON.parse(xhr.responseText));
+    };
+    xhr.onerror = () => reject(new Error("сеть недоступна"));
+    xhr.send(fd);
+  });
+}
+
+async function handleFiles(files) {
+  // Последовательно, а не параллельно: одновременные заливки по сотне
+  // мегабайт делят один канал и все ползут медленно, а прогресс становится
+  // бессмысленным.
+  for (const file of files) {
+    const row = document.createElement("div");
+    row.className = "up-row";
+    row.innerHTML = `<span class="up-name">${esc(file.name)}</span>
+                     <div class="bar"><i style="width:0%"></i></div>
+                     <span class="up-pct">0%</span>`;
+    $("frag-uploads").appendChild(row);
+    const bar = row.querySelector("i"), pct = row.querySelector(".up-pct");
+    try {
+      await uploadFragment(file, (p) => { bar.style.width = p + "%"; pct.textContent = p + "%"; });
+      pct.textContent = "готово";
+      setTimeout(() => row.remove(), 2000);
+      await loadLibrary();
+    } catch (err) {
+      pct.textContent = "";
+      row.querySelector(".bar").remove();
+      row.insertAdjacentHTML("beforeend", `<span class="err">${esc(err.message)}</span>`);
+    }
+  }
+}
+
+$("frag-drop").onclick = () => $("frag-file").click();
+$("frag-file").onchange = (e) => { handleFiles([...e.target.files]); e.target.value = ""; };
+for (const ev of ["dragenter", "dragover"]) {
+  $("frag-drop").addEventListener(ev, (e) => { e.preventDefault(); $("frag-drop").classList.add("over"); });
+}
+for (const ev of ["dragleave", "drop"]) {
+  $("frag-drop").addEventListener(ev, (e) => { e.preventDefault(); $("frag-drop").classList.remove("over"); });
+}
+$("frag-drop").addEventListener("drop", (e) => {
+  if (e.dataTransfer?.files?.length) handleFiles([...e.dataTransfer.files]);
+});
+
+for (const chip of document.querySelectorAll(".lib-tools .chip")) {
+  chip.onclick = () => {
+    document.querySelectorAll(".lib-tools .chip").forEach((c) => c.classList.remove("on"));
+    chip.classList.add("on");
+    libState.source = chip.dataset.src;
+    loadLibrary();
+  };
+}
+
+let _searchTimer = null;
+$("frag-search").oninput = (e) => {
+  // Фильтрует сервер, поэтому ждём паузу в наборе, а не шлём запрос на букву.
+  clearTimeout(_searchTimer);
+  const v = e.target.value.trim();
+  _searchTimer = setTimeout(() => { libState.query = v; loadLibrary(); }, 300);
+};
+
+let _libTimer = null;
+function scheduleLibraryRefresh() {
+  if (_libTimer) return;
+  _libTimer = setTimeout(() => { _libTimer = null; loadLibrary(); }, 4000);
+}
+
+// ---------- запуск ----------
+let _appStarted = false;
+function initApp() {
+  if (_appStarted) return;
+  _appStarted = true;
+  $("env-api").textContent = API_LABEL;
+  // Хосты бывают разные, и «недоступен» без адреса заставляет гадать, какой
+  // из двух молчит. Совпадают — второй ярлык только мешает.
+  $("env-lib").textContent = LIB_BASE === API_BASE ? "" : LIB_LABEL;
+  $("env-lib").style.display = LIB_BASE === API_BASE ? "none" : "";
+  loadDemos();
+  loadLibrary();
+  refreshEnv();
+  startEvents();
+  setInterval(refreshEnv, 15000);
+}
+
+if (getToken()) {
+  showApp();
+  initApp();
+} else {
+  showLogin();
+}
 </script>
 </body>
 </html>
