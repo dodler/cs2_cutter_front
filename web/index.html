@@ -494,22 +494,34 @@ function renderJob(job) {
 }
 
 function jobHtml(j) {
-  const clips = (j.clips || []).map(c => `
+  // Записанный клип по умолчанию уезжает в библиотеку и с рендер-хоста
+  // удаляется, поэтому источник выбирается по library_id: пока его нет —
+  // файл лежит на рендере, появился — брать надо из библиотеки, иначе
+  // ссылка отдаст 404. Клип и его id приезжают разными SSE-событиями, так
+  // что карточка какое-то время показывает ещё локальный файл — это норма.
+  const clips = (j.clips || []).map(c => {
+    const inLib = Boolean(c.library_id);
+    const src = inLib
+      ? libAuth(`/api/library/${encodeURIComponent(c.library_id)}/file`)
+      : apiAuth(c.file_url);
+    return `
     <div class="clip">
-      <video controls preload="metadata" src="${apiAuth(c.file_url)}"></video>
+      <video controls preload="metadata" src="${esc(src)}"></video>
       <div><b>Раунд ${c.round_num}</b> · ${c.kills_count}k · ${c.duration_sec}s · ${c.size_mb} МБ</div>
-      <div><a href="${apiAuth(c.file_url)}" download target="_blank" rel="noopener">${c.filename}</a></div>
-    </div>`).join("");
+      <div><a href="${esc(src)}" download target="_blank" rel="noopener">${esc(c.filename)}</a>
+        ${inLib ? '<span class="badge demo" style="margin-left:6px">в библиотеке</span>' : ""}</div>
+    </div>`;
+  }).join("");
   return `
     <div class="job">
       <div class="job-head">
-        <div><b>${j.player_name}</b> <span class="hint">· ${j.demo_id}</span></div>
-        <span class="badge ${j.status}">${j.status}</span>
+        <div><b>${esc(j.player_name)}</b> <span class="hint">· ${esc(j.demo_id)}</span></div>
+        <span class="badge ${esc(j.status)}">${esc(j.status)}</span>
       </div>
       <div class="bar"><i style="width:${j.progress_percent}%"></i></div>
-      <div class="hint">${j.current_step || ""}${j.total_clips ? ` · клип ${j.current_clip_index}/${j.total_clips}` : ""}</div>
-      ${j.error_message ? `<div class="err">${j.error_message}</div>` : ""}
-      ${j.zip_url ? `<div class="actions"><a href="${apiAuth(j.zip_url)}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
+      <div class="hint">${esc(j.current_step || "")}${j.total_clips ? ` · клип ${j.current_clip_index}/${j.total_clips}` : ""}</div>
+      ${j.error_message ? `<div class="err">${esc(j.error_message)}</div>` : ""}
+      ${j.zip_url ? `<div class="actions"><a href="${esc(apiAuth(j.zip_url))}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
       <div class="clips">${clips}</div>
     </div>`;
 }
