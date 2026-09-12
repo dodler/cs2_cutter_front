@@ -155,6 +155,7 @@
 
 <nav class="tabs" id="tabs">
   <button data-tab="cut" class="on">Нарезка</button>
+  <button data-tab="edit">Редактирование</button>
   <button data-tab="library">Библиотека</button>
 </nav>
 
@@ -206,6 +207,13 @@
     </div>
   </section>
 
+  <section class="card">
+    <h2>Задачи</h2>
+    <div id="jobs"><p class="empty">Задач пока нет.</p></div>
+  </section>
+</div>
+
+<div class="tabpane" id="tab-edit" style="display:none">
   <section class="card" id="edit-card">
     <h2>Редактирование</h2>
     <p class="hint" style="margin:-6px 0 14px">
@@ -230,11 +238,6 @@
       <span class="hint" id="edit-hint"></span>
     </div>
     <div class="clips" id="edit-result"></div>
-  </section>
-
-  <section class="card">
-    <h2>Задачи</h2>
-    <div id="jobs"><p class="empty">Задач пока нет.</p></div>
   </section>
 </div>
 
@@ -917,7 +920,7 @@ function scheduleLibraryRefresh() {
 const TAB_KEY = "cs2_tab";
 
 function showTab(name) {
-  const known = ["cut", "library"];
+  const known = ["cut", "edit", "library"];
   if (!known.includes(name)) name = "cut";
   for (const t of known) {
     $("tab-" + t).style.display = t === name ? "" : "none";
@@ -929,6 +932,9 @@ function showTab(name) {
   // Библиотеку подтягиваем при показе: пока вкладка скрыта, список
   // не обновляется, и открывать её со старым содержимым незачем.
   if (name === "library") loadLibrary();
+  // Список клипов для редактирования наполняется из обновлений задач, но на
+  // скрытой вкладке его никто не видел — пересобираем на всякий случай.
+  if (name === "edit") refreshEditClips();
 }
 
 for (const b of document.querySelectorAll("#tabs button")) {
