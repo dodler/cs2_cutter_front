@@ -25,6 +25,16 @@
   .dot.ok { background: var(--ok); } .dot.bad { background: var(--err); }
   .api { font-size: 12px; color: var(--muted); background: var(--panel-2);
          border: 1px solid var(--line); border-radius: 20px; padding: 2px 9px; }
+  .tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--line); }
+  /* Перебиваем общий стиль button: здесь не кнопка-действие, а переключатель */
+  .tabs button {
+    background: transparent; border: none; border-radius: 0; width: auto;
+    color: var(--muted); font-weight: 600; padding: 11px 16px; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
+  .tabpane { display: grid; gap: 20px; }
   main { max-width: 1080px; margin: 0 auto; padding: 24px; display: grid; gap: 20px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
   .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em;
@@ -142,7 +152,13 @@
   </div>
 </header>
 
+<nav class="tabs" id="tabs">
+  <button data-tab="cut" class="on">Нарезка</button>
+  <button data-tab="library">Библиотека</button>
+</nav>
+
 <main>
+<div class="tabpane" id="tab-cut">
   <section class="card">
     <h2>1. Демка</h2>
     <div class="row">
@@ -189,28 +205,6 @@
     </div>
   </section>
 
-  <section class="card" id="library-card">
-    <h2>Библиотека фрагментов</h2>
-
-    <div class="drop" id="frag-drop">
-      <b>Перетащите сюда свои клипы</b> или нажмите, чтобы выбрать
-      <div class="hint" id="frag-limits" style="margin-top:4px"></div>
-    </div>
-    <input type="file" id="frag-file" multiple style="display:none">
-    <div id="frag-uploads"></div>
-
-    <div class="lib-tools">
-      <button class="chip on" data-src="">Все</button>
-      <button class="chip" data-src="demo">Из демок</button>
-      <button class="chip" data-src="upload">Свои</button>
-      <input type="search" id="frag-search" placeholder="Поиск по названию или тегу">
-      <span class="hint" id="frag-stats"></span>
-    </div>
-
-    <div class="frags" id="frags"></div>
-    <p class="empty" id="frags-empty">Библиотека пуста.</p>
-  </section>
-
   <section class="card" id="edit-card">
     <h2>Редактирование</h2>
     <p class="hint" style="margin:-6px 0 14px">
@@ -241,6 +235,31 @@
     <h2>Задачи</h2>
     <div id="jobs"><p class="empty">Задач пока нет.</p></div>
   </section>
+</div>
+
+<div class="tabpane" id="tab-library" style="display:none">
+  <section class="card" id="library-card">
+    <h2>Библиотека фрагментов</h2>
+
+    <div class="drop" id="frag-drop">
+      <b>Перетащите сюда свои клипы</b> или нажмите, чтобы выбрать
+      <div class="hint" id="frag-limits" style="margin-top:4px"></div>
+    </div>
+    <input type="file" id="frag-file" multiple style="display:none">
+    <div id="frag-uploads"></div>
+
+    <div class="lib-tools">
+      <button class="chip on" data-src="">Все</button>
+      <button class="chip" data-src="demo">Из демок</button>
+      <button class="chip" data-src="upload">Свои</button>
+      <input type="search" id="frag-search" placeholder="Поиск по названию или тегу">
+      <span class="hint" id="frag-stats"></span>
+    </div>
+
+    <div class="frags" id="frags"></div>
+    <p class="empty" id="frags-empty">Библиотека пуста.</p>
+  </section>
+</div>
 </main>
 </div>
 
@@ -850,7 +869,38 @@ $("frag-search").oninput = (e) => {
 let _libTimer = null;
 function scheduleLibraryRefresh() {
   if (_libTimer) return;
+  // На скрытой вкладке опрашивать нечего: список всё равно не виден, а
+  // загрузка сотни фрагментов раз в четыре секунды не бесплатна. При
+  // возвращении на вкладку showTab() дёрнет loadLibrary() сам.
+  if (!libraryTabVisible()) return;
   _libTimer = setTimeout(() => { _libTimer = null; loadLibrary(); }, 4000);
+}
+
+// ---------- вкладки ----------
+const TAB_KEY = "cs2_tab";
+
+function showTab(name) {
+  const known = ["cut", "library"];
+  if (!known.includes(name)) name = "cut";
+  for (const t of known) {
+    $("tab-" + t).style.display = t === name ? "" : "none";
+  }
+  for (const b of document.querySelectorAll("#tabs button")) {
+    b.classList.toggle("on", b.dataset.tab === name);
+  }
+  try { localStorage.setItem(TAB_KEY, name); } catch {}
+  // Библиотеку подтягиваем при показе: пока вкладка скрыта, список
+  // не обновляется, и открывать её со старым содержимым незачем.
+  if (name === "library") loadLibrary();
+}
+
+for (const b of document.querySelectorAll("#tabs button")) {
+  b.onclick = () => showTab(b.dataset.tab);
+}
+
+function libraryTabVisible() {
+  const pane = $("tab-library");
+  return Boolean(pane) && pane.style.display !== "none";
 }
 
 // ---------- запуск ----------
@@ -864,7 +914,9 @@ function initApp() {
   $("env-lib").textContent = LIB_BASE === API_BASE ? "" : LIB_LABEL;
   $("env-lib").style.display = LIB_BASE === API_BASE ? "none" : "";
   loadDemos();
-  loadLibrary();
+  let saved = "cut";
+  try { saved = localStorage.getItem(TAB_KEY) || "cut"; } catch {}
+  showTab(saved);          // на вкладке библиотеки сам вызовет loadLibrary()
   refreshEnv();
   startEvents();
   setInterval(refreshEnv, 15000);
