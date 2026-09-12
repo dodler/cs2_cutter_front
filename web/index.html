@@ -211,6 +211,32 @@
     <p class="empty" id="frags-empty">Библиотека пуста.</p>
   </section>
 
+  <section class="card" id="edit-card">
+    <h2>Редактирование</h2>
+    <p class="hint" style="margin:-6px 0 14px">
+      Вертикальный формат 1080×1920 для шортсов и рилсов. Исходный клип
+      остаётся на месте, версия собирается рядом.
+    </p>
+    <div class="row">
+      <div>
+        <label for="edit-clip">Клип</label>
+        <select id="edit-clip"></select>
+      </div>
+      <div>
+        <label for="edit-mode">Формат</label>
+        <select id="edit-mode">
+          <option value="blur">9:16 — размыть сверху и снизу</option>
+          <option value="crop">9:16 — обрезать по краям</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="edit-run">Собрать вертикальный</button>
+      <span class="hint" id="edit-hint"></span>
+    </div>
+    <div class="clips" id="edit-result"></div>
+  </section>
+
   <section class="card">
     <h2>Задачи</h2>
     <div id="jobs"><p class="empty">Задач пока нет.</p></div>
@@ -223,7 +249,7 @@
 <script src="config.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-const state = { demoId: null, player: null, jobs: new Map() };
+const state = { demoId: null, player: null, jobs: new Map(), editClips: [] };
 
 // ---------- адрес бэкенда ----------
 // UI и бэкенд с CS2 могут жить на разных хостах, поэтому базовый адрес API
@@ -549,7 +575,61 @@ function startEvents() {
 function renderJob0() {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
   $("jobs").innerHTML = sorted.map(jobHtml).join("") || "<p class='empty'>Задач пока нет.</p>";
+  refreshEditClips();
 }
+
+// ---------- редактирование ----------
+// Собираем список клипов, пригодных к пересборке. Вертикальную версию делает
+// рендер-хост из ЛОКАЛЬНОГО файла, поэтому уехавшие в библиотеку клипы сюда не
+// попадают: на рендере их уже нет (см. _drop_local_copy), и запрос дал бы 404.
+function refreshEditClips() {
+  const sel = $("edit-clip");
+  const prev = sel.value;
+  const items = [];
+  const jobs = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
+  for (const j of jobs) {
+    for (const c of j.clips || []) {
+      if (c.library_id) continue;
+      if (/__vertical_(crop|blur)\.mp4$/.test(c.filename || "")) continue;
+      const m = /^\/api\/clips\/([^/]+)\/(.+)$/.exec(c.file_url || "");
+      if (!m) continue;
+      items.push({ jobId: m[1], filename: m[2],
+                   label: `${j.player_name} · ${c.filename} · ${c.duration_sec}s` });
+    }
+  }
+  state.editClips = items;
+  sel.innerHTML = items.length
+    ? items.map((it, i) => `<option value="${i}">${esc(it.label)}</option>`).join("")
+    : "<option value=''>— нет клипов на рендер-хосте —</option>";
+  if (prev && items[prev]) sel.value = prev;
+}
+
+$("edit-run").onclick = async () => {
+  const it = state.editClips[$("edit-clip").value];
+  if (!it) return;
+  const mode = $("edit-mode").value;
+  $("edit-run").disabled = true;
+  $("edit-hint").textContent = "Собираю…";
+  try {
+    const res = await fetch(
+      apiAuth(`/api/clips/${encodeURIComponent(it.jobId)}/${encodeURIComponent(it.filename)}/vertical`),
+      { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }) });
+    if (!res.ok) throw new Error(((await res.json()).detail) || res.status);
+    const v = await res.json();
+    const src = apiAuth(v.file_url);
+    $("edit-result").innerHTML = `
+      <div class="clip">
+        <video controls preload="metadata" src="${esc(src)}" style="max-height:70vh"></video>
+        <div><b>1080×1920</b> · ${esc(v.mode === "crop" ? "обрезка по краям" : "размытие сверху и снизу")} · ${v.size_mb} МБ</div>
+        <div><a href="${esc(src)}" download target="_blank" rel="noopener">${esc(v.filename)}</a></div>
+      </div>`;
+    $("edit-hint").textContent = "Готово";
+  } catch (err) {
+    $("edit-hint").textContent = "Ошибка: " + err.message;
+  }
+  $("edit-run").disabled = false;
+};
 
 // ---------- библиотека фрагментов ----------
 // Названия фрагментов задаёт человек (загрузка, переименование), поэтому в
