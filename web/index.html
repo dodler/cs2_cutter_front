@@ -579,9 +579,9 @@ function renderJob0() {
 }
 
 // ---------- редактирование ----------
-// Собираем список клипов, пригодных к пересборке. Вертикальную версию делает
-// рендер-хост из ЛОКАЛЬНОГО файла, поэтому уехавшие в библиотеку клипы сюда не
-// попадают: на рендере их уже нет (см. _drop_local_copy), и запрос дал бы 404.
+// Источником может быть и локальный файл задачи, и фрагмент библиотеки:
+// успешно отправленный клип с рендер-хоста удаляется (см. _drop_local_copy),
+// и для него единственный источник — library_id.
 function refreshEditClips() {
   const sel = $("edit-clip");
   const prev = sel.value;
@@ -589,18 +589,21 @@ function refreshEditClips() {
   const jobs = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
   for (const j of jobs) {
     for (const c of j.clips || []) {
-      if (c.library_id) continue;
       if (/__vertical_(crop|blur)\.mp4$/.test(c.filename || "")) continue;
-      const m = /^\/api\/clips\/([^/]+)\/(.+)$/.exec(c.file_url || "");
-      if (!m) continue;
-      items.push({ jobId: m[1], filename: m[2],
-                   label: `${j.player_name} · ${c.filename} · ${c.duration_sec}s` });
+      const body = c.library_id
+        ? { library_id: c.library_id }
+        : (/^\/api\/clips\/([^/]+)\/(.+)$/.exec(c.file_url || "")
+            ? { job_id: RegExp.$1, filename: RegExp.$2 } : null);
+      if (!body) continue;
+      items.push({ body,
+                   label: `${j.player_name} · ${c.filename} · ${c.duration_sec}s`
+                          + (c.library_id ? " · из библиотеки" : "") });
     }
   }
   state.editClips = items;
   sel.innerHTML = items.length
     ? items.map((it, i) => `<option value="${i}">${esc(it.label)}</option>`).join("")
-    : "<option value=''>— нет клипов на рендер-хосте —</option>";
+    : "<option value=''>— клипов пока нет —</option>";
   if (prev && items[prev]) sel.value = prev;
 }
 
@@ -611,20 +614,21 @@ $("edit-run").onclick = async () => {
   $("edit-run").disabled = true;
   $("edit-hint").textContent = "Собираю…";
   try {
-    const res = await fetch(
-      apiAuth(`/api/clips/${encodeURIComponent(it.jobId)}/${encodeURIComponent(it.filename)}/vertical`),
-      { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode }) });
+    const res = await fetch(apiAuth("/api/vertical"), {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, ...it.body }) });
     if (!res.ok) throw new Error(((await res.json()).detail) || res.status);
     const v = await res.json();
-    const src = apiAuth(v.file_url);
+    const src = v.in_library ? libAuth(v.file_url) : apiAuth(v.file_url);
     $("edit-result").innerHTML = `
       <div class="clip">
         <video controls preload="metadata" src="${esc(src)}" style="max-height:70vh"></video>
-        <div><b>1080×1920</b> · ${esc(v.mode === "crop" ? "обрезка по краям" : "размытие сверху и снизу")} · ${v.size_mb} МБ</div>
-        <div><a href="${esc(src)}" download target="_blank" rel="noopener">${esc(v.filename)}</a></div>
+        <div><b>1080×1920</b> · ${esc(v.mode === "crop" ? "обрезка по краям" : "размытие сверху и снизу")}
+          ${v.in_library ? '<span class="badge demo" style="margin-left:6px">в библиотеке</span>' : ""}</div>
+        <div><a href="${esc(src)}" download target="_blank" rel="noopener">скачать</a></div>
       </div>`;
-    $("edit-hint").textContent = "Готово";
+    $("edit-hint").textContent = v.in_library ? "Готово, фрагмент в библиотеке" : "Готово";
+    if (typeof loadLibrary === "function") loadLibrary();
   } catch (err) {
     $("edit-hint").textContent = "Ошибка: " + err.message;
   }
