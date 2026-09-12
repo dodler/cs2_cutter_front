@@ -23,6 +23,7 @@
   .env { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
   .dot.ok { background: var(--ok); } .dot.bad { background: var(--err); }
+  .api.bad { color: var(--err); border-color: var(--err); }
   .api { font-size: 12px; color: var(--muted); background: var(--panel-2);
          border: 1px solid var(--line); border-radius: 20px; padding: 2px 9px; }
   .tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--line); }
@@ -342,6 +343,7 @@ const libAuth = (path) => withToken(lib(path));
 // Authorization: Bearer <token> на каждый запрос к бэкенду. Для SSE
 // (EventSource не умеет слать заголовки) токен передаётся в query — см.
 // startEvents().
+const libState = { source: "", query: "", items: [], limits: null };
 const TOKEN_KEY = "cs2_jwt_token";
 const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
 const setToken = (t) => { try { localStorage.setItem(TOKEN_KEY, t); } catch {} };
@@ -365,6 +367,20 @@ function showLogin(message) {
   $("login-screen").style.display = "block";
   $("login-error").style.display = message ? "block" : "none";
   $("login-error").textContent = message || "";
+
+  // Содержимое подчищаем, а не просто прячем. Иначе после повторного входа
+  // на экране остаются карточки от прошлой сессии с видео, подписанными уже
+  // недействительным токеном: выглядит как «клипы есть, но не играются»,
+  // хотя на самом деле сессия истекла.
+  if (window._es) { window._es.close(); window._es = null; }
+  state.jobs.clear();
+  state.editClips = [];
+  libState.items = [];
+  const blank = { jobs: "<p class='empty'>Задач пока нет.</p>", frags: "", "edit-result": "" };
+  for (const [id, html] of Object.entries(blank)) {
+    const el = $(id);
+    if (el) el.innerHTML = html;
+  }
 }
 
 function showApp() {
@@ -426,6 +442,27 @@ async function refreshEnv() {
     // Когда UI и бэкенд разнесены, «недоступен» почти всегда означает не тот
     // адрес или закрытый порт — поэтому сразу называем адрес.
     $("env-text").textContent = `бэкенд недоступен: ${API_LABEL}`;
+  }
+  await checkLibrarySession();
+}
+
+// Рендер-бэкенд авторизации не требует, библиотека требует. Поэтому истёкшая
+// сессия ничем себя не выдавала: задачи шли, клипы появлялись, а библиотека
+// молча отвечала 401 — и видео в карточках не играло, потому что <video>
+// грузится браузером напрямую, мимо authFetch, и о своём 401 никому не
+// сообщает. Тычемся в /api/auth/me: 401 внутри authFetch сам вернёт на экран
+// входа, а недоступность отметим в шапке.
+async function checkLibrarySession() {
+  const badge = $("env-lib");
+  try {
+    await authFetch(lib("/api/auth/me"));
+    if (badge) badge.classList.remove("bad");
+  } catch (err) {
+    if (String(err && err.message) === "не авторизован") return;   // уже разлогинены
+    if (badge) {
+      badge.classList.add("bad");
+      badge.title = `Библиотека недоступна: ${LIB_LABEL}`;
+    }
   }
 }
 $("env-restart").onclick = async () => {
@@ -661,7 +698,7 @@ $("edit-run").onclick = async () => {
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-const libState = { source: "", query: "", items: [], limits: null };
+
 
 const fmtDur = (sec) => {
   const s = Math.max(0, Math.round(sec || 0));
