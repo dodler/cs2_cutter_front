@@ -46,6 +46,10 @@
     border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%;
   }
   input[type=file] { padding: 7px; }
+  /* Чекбокс: input выше растянут на всю ширину, для галки это не нужно. */
+  .check { display: flex; align-items: center; gap: 8px; margin: 0;
+           padding: 9px 0; color: var(--text); font-size: 14px; }
+  .check input[type=checkbox] { width: auto; margin: 0; accent-color: var(--accent); }
   button {
     background: var(--accent); color: #1a1200; border: none; font-weight: 600;
     cursor: pointer; width: auto; padding: 10px 20px;
@@ -200,6 +204,8 @@
         <select id="only-hs"><option value="false">нет</option><option value="true">да</option></select></div>
       <div><label for="xray" title="spec_show_xray: враги светятся сквозь стены. CS2 включает его по умолчанию, в хайлайтах обычно лишний">Рентген сквозь стены</label>
         <select id="xray"><option value="false">нет</option><option value="true">да</option></select></div>
+      <div><label for="slowmo" title="Во время убийств демка замедляется прямо в игре (demo_timescale), поэтому движение остаётся плавным. Клип получается длиннее игрового отрезка, и запись идёт дольше">Слоумо на фраге</label>
+        <label class="check"><input type="checkbox" id="slowmo"> замедлять момент убийства</label></div>
     </div>
     <div class="actions">
       <button id="start">Записать хайлайты</button>
@@ -560,6 +566,7 @@ $("start").onclick = async () => {
         pre_kill_sec: +$("pre").value,
         post_kill_sec: +$("post").value,
         xray: $("xray").value === "true",
+        slowmo: $("slowmo").checked,
       }),
     });
     if (!res.ok) throw new Error((await res.json()).detail);
