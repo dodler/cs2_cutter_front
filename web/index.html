@@ -123,22 +123,50 @@
   .modal .box { background: var(--panel); border: 1px solid var(--line);
                 border-radius: var(--radius); padding: 14px; max-width: 900px; width: 100%; }
   .modal video { width: 100%; max-height: 70vh; background: #000; border-radius: 6px; }
+  .steam-btn { background: #1b2838; color: #fff; border: 1px solid #66c0f4; }
+  .plan { font-size: 12px; border-radius: 20px; padding: 2px 9px; border: 1px solid var(--line);
+          background: var(--panel-2); color: var(--muted); white-space: nowrap; }
+  .plan.pro { color: var(--accent); border-color: var(--accent); }
+  .plan.empty { color: var(--err); border-color: var(--err); }
+  .plans { display: grid; gap: 10px; margin: 14px 0; }
+  .plans button { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; }
+  .upsell { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .upsell button { width: auto; padding: 5px 12px; font-size: 13px; }
 </style>
 </head>
 <body>
 <div id="login-screen" style="display:none; max-width:340px; margin:80px auto; padding:24px;" class="card">
   <h2 style="margin-top:0">Вход</h2>
   <div style="display:grid; gap:10px">
-    <div>
-      <label for="login-user">Логин</label>
-      <input id="login-user" autocomplete="username">
-    </div>
-    <div>
-      <label for="login-pass">Пароль</label>
-      <input id="login-pass" type="password" autocomplete="current-password">
-    </div>
-    <button id="login-submit">Войти</button>
+    <button id="login-steam" class="steam-btn">Войти через Steam</button>
+    <p class="hint" style="margin:0">Бесплатно — 2 клипа в месяц, в премиуме — 100.</p>
     <div class="err" id="login-error" style="display:none"></div>
+    <!-- Вход по паролю — только администратор (им же логинится рендер-хост),
+         поэтому он спрятан, а не убран. -->
+    <details>
+      <summary class="hint" style="cursor:pointer">Вход администратора</summary>
+      <div style="display:grid; gap:10px; margin-top:10px">
+        <div>
+          <label for="login-user">Логин</label>
+          <input id="login-user" autocomplete="username">
+        </div>
+        <div>
+          <label for="login-pass">Пароль</label>
+          <input id="login-pass" type="password" autocomplete="current-password">
+        </div>
+        <button id="login-submit">Войти</button>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="modal" id="billing-modal" style="display:none">
+  <div class="box" style="max-width:460px">
+    <h2 style="margin:0 0 6px">Премиум</h2>
+    <p class="hint" id="billing-text" style="margin:0">100 клипов за период вместо 2 в месяц.</p>
+    <div class="plans" id="billing-plans"></div>
+    <div class="err" id="billing-error" style="display:none"></div>
+    <div class="actions"><button class="ghost" id="billing-close" style="width:auto">Закрыть</button></div>
   </div>
 </div>
 
@@ -153,6 +181,8 @@
     <button class="ghost" id="env-restart" style="display:none; padding:5px 12px; font-size:13px">
       Перезапустить CS2
     </button>
+    <span class="plan" id="plan" style="display:none"></span>
+    <button id="buy" style="display:none; padding:5px 12px; font-size:13px; width:auto">Премиум</button>
     <button class="ghost" id="logout" style="padding:5px 12px; font-size:13px">Выйти</button>
   </div>
 </header>
@@ -278,7 +308,7 @@
 <script src="config.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-const state = { demoId: null, player: null, jobs: new Map(), editClips: [] };
+const state = { demoId: null, player: null, jobs: new Map(), editClips: [], role: null, billing: null };
 
 // ---------- адрес бэкенда ----------
 // UI и бэкенд с CS2 могут жить на разных хостах, поэтому базовый адрес API
@@ -424,8 +454,27 @@ $("login-submit").onclick = async () => {
 };
 $("login-pass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("login-submit").click(); });
 
+// Вход через Steam — полным переходом, а не fetch: OpenID работает
+// редиректами, и вернётся браузер сюда же с токеном во фрагменте (#token=).
+$("login-steam").onclick = () => { location.href = lib("/api/auth/steam/login"); };
+
+// Возврат из Steam: токен во фрагменте, а не в query — фрагмент не уходит
+// на серверы и в Referer. Забираем его и сразу стираем из адресной строки,
+// иначе токен останется в истории браузера и в скопированной ссылке.
+function takeLoginFromHash() {
+  if (!location.hash) return null;
+  const params = new URLSearchParams(location.hash.slice(1));
+  const token = params.get("token"), error = params.get("login_error");
+  if (!token && !error) return null;
+  history.replaceState(null, "", location.pathname + location.search);
+  if (token) setToken(token);
+  return error;
+}
+
 $("logout").onclick = () => {
   clearToken();
+  state.role = null;
+  state.billing = null;
   if (window._es) window._es.close();
   showLogin();
 };
@@ -445,7 +494,9 @@ async function refreshEnv() {
     text.textContent = ready
       ? `headless ${s.resolution} · CS2 готова`
       : `headless · ${s.session_running ? "CS2 не запущена" : "сессия не поднята"}`;
-    $("env-restart").style.display = ready ? "none" : "inline-block";
+    // Перезапуск обрывает чужую запись, поэтому рендер пускает к нему только
+    // администратора — и кнопку показываем только ему.
+    $("env-restart").style.display = ready || state.role !== "admin" ? "none" : "inline-block";
   } catch {
     $("env-dot").className = "dot bad";
     // Когда UI и бэкенд разнесены, «недоступен» почти всегда означает не тот
@@ -464,7 +515,8 @@ async function refreshEnv() {
 async function checkLibrarySession() {
   const badge = $("env-lib");
   try {
-    await authFetch(lib("/api/auth/me"));
+    const me = await (await authFetch(lib("/api/auth/me"))).json();
+    state.role = me.role;
     if (badge) badge.classList.remove("bad");
   } catch (err) {
     if (String(err && err.message) === "не авторизован") return;   // уже разлогинены
@@ -569,8 +621,13 @@ $("start").onclick = async () => {
         slowmo: $("slowmo").checked,
       }),
     });
-    if (!res.ok) throw new Error((await res.json()).detail);
-    renderJob(await res.json());
+    if (res.status === 402) {
+      $("start-hint").textContent = (await res.json()).detail;
+      openBilling();
+    } else {
+      if (!res.ok) throw new Error((await res.json()).detail);
+      renderJob(await res.json());
+    }
   } catch (err) {
     $("start-hint").textContent = "Ошибка: " + err.message;
   }
@@ -613,6 +670,8 @@ function jobHtml(j) {
       <div class="bar"><i style="width:${j.progress_percent}%"></i></div>
       <div class="hint">${esc(j.current_step || "")}${j.total_clips ? ` · клип ${j.current_clip_index}/${j.total_clips}` : ""}</div>
       ${j.error_message ? `<div class="err">${esc(j.error_message)}</div>` : ""}
+      ${j.quota_limited ? `<div class="upsell"><span class="hint">Ещё ${+j.quota_limited} клип(ов) не записано — закончился лимит тарифа.</span>
+        <button data-act="buy">Премиум</button></div>` : ""}
       ${j.zip_url ? `<div class="actions"><a href="${esc(apiAuth(j.zip_url))}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
       <div class="clips">${clips}</div>
     </div>`;
@@ -632,12 +691,20 @@ function startEvents() {
     state.jobs.set(j.id, j);
     renderJob0();
     if (j.status === "processing" || j.status === "failed") refreshEnv();
+    // Остаток квоты меняется, когда задача закончилась и записанное списано.
+    if (j.status === "completed" || j.status === "failed") loadBilling();
     // Рендер-хост шлёт клипы в библиотеку фоном, уже после записи, поэтому
     // ждать конца задачи нельзя — обновляем список на каждом событии, но не
     // чаще раза в несколько секунд.
     scheduleLibraryRefresh();
   });
 }
+// Карточки задач перерисовываются целиком — кнопка «Премиум» в них
+// обрабатывается делегированием, как и в сетке фрагментов.
+$("jobs").addEventListener("click", (e) => {
+  if (e.target.closest("[data-act=buy]")) openBilling();
+});
+
 function renderJob0() {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
   $("jobs").innerHTML = sorted.map(jobHtml).join("") || "<p class='empty'>Задач пока нет.</p>";
@@ -923,6 +990,136 @@ function scheduleLibraryRefresh() {
   _libTimer = setTimeout(() => { _libTimer = null; loadLibrary(); }, 4000);
 }
 
+// ---------- тариф и оплата ----------
+// Квоту считает библиотека, рендер её только бронирует. Здесь — показать
+// остаток и продать премиум двумя способами: Paddle (карты всего мира,
+// подписка) и ЮKassa (карты РФ и СБП, оплата за 30 дней).
+async function loadBilling() {
+  try {
+    const b = await (await authFetch(lib("/api/billing/me"))).json();
+    state.billing = b;
+    renderPlan(b);
+    return b;
+  } catch {
+    return null;
+  }
+}
+
+function renderPlan(b) {
+  const el = $("plan"), buy = $("buy");
+  if (!b || b.unlimited) {
+    el.style.display = "none";
+    buy.style.display = "none";
+    return;
+  }
+  const until = new Date(b.period_end * 1000).toLocaleDateString();
+  el.textContent = `${b.plan === "pro" ? "Премиум" : "Бесплатно"} · ${b.remaining} из ${b.limit} до ${until}`;
+  el.className = "plan" + (b.plan === "pro" ? " pro" : "") + (b.remaining ? "" : " empty");
+  el.title = b.name ? `Steam: ${b.name}` : b.user_id;
+  el.style.display = "";
+  // Подписку Paddle не продаём поверх действующей, а ЮKassa продлевает:
+  // её период встаёт после уже оплаченного.
+  buy.textContent = b.plan === "pro" ? "Продлить" : "Премиум";
+  buy.style.display = (b.providers || []).length ? "" : "none";
+}
+
+function openBilling() {
+  const b = state.billing;
+  const providers = (b && b.providers) || [];
+  if (!providers.length) {
+    alert("Оплата пока не подключена");
+    return;
+  }
+  $("billing-error").style.display = "none";
+  $("billing-text").textContent = b.plan === "pro"
+    ? `Премиум оплачен до ${new Date(b.paid_until * 1000).toLocaleDateString()}. Оплата за 30 дней добавится после этой даты.`
+    : "100 клипов за период вместо 2 в месяц.";
+  $("billing-plans").innerHTML = providers
+    // Действующую подписку Paddle второй раз не оформить — лишний платёж.
+    .filter(p => !(b.plan === "pro" && p.recurring))
+    .map(p => `<button data-provider="${esc(p.id)}"><span>${esc(p.label)}</span><span>${esc(p.price)}</span></button>`)
+    .join("") || "<p class='hint'>Подписка уже действует.</p>";
+  $("billing-modal").style.display = "flex";
+}
+
+$("buy").onclick = openBilling;
+$("billing-close").onclick = () => { $("billing-modal").style.display = "none"; };
+
+$("billing-plans").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-provider]");
+  if (!btn) return;
+  btn.disabled = true;
+  $("billing-error").style.display = "none";
+  try {
+    const res = await authFetch(lib("/api/billing/checkout"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: btn.dataset.provider }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.status);
+    const co = await res.json();
+    if (co.provider === "paddle") {
+      await openPaddle(co.transaction_id);
+      $("billing-modal").style.display = "none";
+    } else {
+      location.href = co.url;     // страница оплаты ЮKassa, вернётся с ?paid=
+    }
+  } catch (err) {
+    $("billing-error").textContent = "Не удалось начать оплату: " + err.message;
+    $("billing-error").style.display = "block";
+  }
+  btn.disabled = false;
+});
+
+// Paddle.js грузим только при оплате: чужой скрипт на каждой странице
+// не нужен, а большинство пользователей его так и не откроет.
+let _paddleReady = null;
+function loadPaddle(info) {
+  if (_paddleReady) return _paddleReady;
+  _paddleReady = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+    s.onload = () => {
+      if (info.environment === "sandbox") Paddle.Environment.set("sandbox");
+      Paddle.Initialize({
+        token: info.client_token,
+        eventCallback: (ev) => {
+          // Оверлей сообщает об оплате раньше, чем дойдёт вебхук, а премиум
+          // включает только вебхук — поэтому ждём его, а не верим событию.
+          if (ev.name === "checkout.completed") waitForPro();
+        },
+      });
+      resolve();
+    };
+    s.onerror = () => { _paddleReady = null; reject(new Error("Paddle.js не загрузился")); };
+    document.head.appendChild(s);
+  });
+  return _paddleReady;
+}
+
+async function openPaddle(transactionId) {
+  const info = (state.billing.providers || []).find(p => p.id === "paddle");
+  await loadPaddle(info);
+  // Транзакцию создал сервер (в ней user_id), оверлей только принимает оплату.
+  Paddle.Checkout.open({ transactionId });
+}
+
+// Премиум включается вебхуком провайдера, на который нужно несколько
+// секунд. Опрашиваем, пока он не дойдёт, — иначе человек видит «Бесплатно»
+// сразу после оплаты и думает, что деньги пропали.
+async function waitForPro() {
+  const before = state.billing ? state.billing.paid_until : null;
+  $("plan").textContent = "проверяю оплату…";
+  $("plan").style.display = "";
+  for (let i = 0; i < 20; i++) {
+    const b = await loadBilling();
+    if (b && b.plan === "pro" && b.paid_until !== before) return;
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  renderPlan(state.billing);
+  alert("Оплата ещё не подтвердилась. Если деньги списаны, премиум включится в течение нескольких минут.");
+}
+
 // ---------- вкладки ----------
 const TAB_KEY = "cs2_tab";
 
@@ -970,13 +1167,23 @@ function initApp() {
   refreshEnv();
   startEvents();
   setInterval(refreshEnv, 15000);
+  loadBilling().then(() => {
+    // Возврат со страницы оплаты ЮKassa.
+    const url = new URL(location.href);
+    if (url.searchParams.get("paid")) {
+      url.searchParams.delete("paid");
+      history.replaceState(null, "", url.pathname + url.search);
+      waitForPro();
+    }
+  });
 }
 
+const loginError = takeLoginFromHash();
 if (getToken()) {
   showApp();
   initApp();
 } else {
-  showLogin();
+  showLogin(loginError);
 }
 </script>
 </body>
