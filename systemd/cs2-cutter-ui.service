@@ -21,6 +21,7 @@ Type=exec
 WorkingDirectory=%h/PycharmProjects/cs2_cutter_ui
 # Адрес бэкенда с CS2 — главный параметр этого юнита.
 Environment=CS2_API_BASE=http://192.168.0.4:8000
+Environment=CS2_LIBRARY_BASE=http://192.168.0.5:8000
 Environment=UI_HOST=0.0.0.0
 Environment=UI_PORT=8080
 ExecStart=%h/PycharmProjects/cs2_cutter_ui/serve_ui.sh
