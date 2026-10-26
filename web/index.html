@@ -24,6 +24,9 @@
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
   .dot.ok { background: var(--ok); } .dot.bad { background: var(--err); }
   .api.bad { color: var(--err); border-color: var(--err); }
+  #admin-hosts input[type=checkbox] { width: auto; accent-color: var(--accent); }
+  #admin-hosts button, #admin-hosts td { white-space: nowrap; }
+  #admin-hosts button { padding: 5px 12px; font-size: 13px; }
   .api { font-size: 12px; color: var(--muted); background: var(--panel-2);
          border: 1px solid var(--line); border-radius: 20px; padding: 2px 9px; }
   .tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--line); }
@@ -174,13 +177,6 @@
 <header>
   <h1>🎬 CS2 Highlight Cutter</h1>
   <div class="env">
-    <span class="dot" id="env-dot"></span>
-    <span id="env-text">проверяю среду…</span>
-    <span class="api" id="env-api" title="Рендер-бэкенд: нарезка и запись клипов"></span>
-    <span class="api" id="env-lib" title="Сервис библиотеки фрагментов и авторизации"></span>
-    <button class="ghost" id="env-restart" style="display:none; padding:5px 12px; font-size:13px">
-      Перезапустить CS2
-    </button>
     <span class="plan" id="plan" style="display:none"></span>
     <button id="buy" style="display:none; padding:5px 12px; font-size:13px; width:auto">Премиум</button>
     <button class="ghost" id="logout" style="padding:5px 12px; font-size:13px">Выйти</button>
@@ -191,6 +187,7 @@
   <button data-tab="cut" class="on">Нарезка</button>
   <button data-tab="edit">Редактирование</button>
   <button data-tab="library">Библиотека</button>
+  <button data-tab="admin" id="admin-tab-btn" style="display:none">Админ</button>
 </nav>
 
 <main>
@@ -306,6 +303,41 @@
     <p class="empty" id="frags-empty">Библиотека пуста.</p>
   </section>
 </div>
+
+<div class="tabpane" id="tab-admin" style="display:none">
+  <section class="card">
+    <h2>Сервисы</h2>
+    <table>
+      <thead><tr><th>Сервис</th><th>Адрес</th><th>Состояние</th></tr></thead>
+      <tbody id="admin-services"></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Рендер-хосты</h2>
+    <p class="hint" style="margin:-6px 0 14px">
+      Машины с CS2 (cs2_cutter), между которыми раскидываются задачи: новая
+      демка уходит на готовый хост с самой короткой очередью, задачи по ней —
+      туда же. На хосте CS2_JWT_SECRET должен совпадать с библиотекой,
+      CS2_LIBRARY_URL — указывать на неё, а в CS2_CORS_ORIGINS — быть адрес этого UI.
+    </p>
+    <table>
+      <thead><tr><th>Имя</th><th>Адрес</th><th>Состояние</th><th>Очередь</th><th>Вкл.</th><th></th></tr></thead>
+      <tbody id="admin-hosts"></tbody>
+    </table>
+    <p class="hint" id="admin-hosts-note" style="display:none"></p>
+    <div class="row" style="margin-top:14px">
+      <div><label for="host-url">Адрес хоста</label>
+        <input type="text" id="host-url" placeholder="http://192.168.0.4:8000"></div>
+      <div><label for="host-name">Имя (необязательно)</label>
+        <input type="text" id="host-name" placeholder="rig-1"></div>
+    </div>
+    <div class="actions">
+      <button id="host-add">Добавить хост</button>
+      <span class="hint" id="host-hint"></span>
+    </div>
+  </section>
+</div>
 </main>
 </div>
 
@@ -314,7 +346,13 @@
 <script src="config.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-const state = { demoId: null, player: null, jobs: new Map(), editClips: [], role: null, billing: null };
+const state = { demoId: null, demoHost: null, demos: [], player: null, jobs: new Map(),
+                editClips: [], role: null, billing: null, es: [] };
+// Запущено ли приложение и его таймеры: выход всё это сбрасывает, иначе
+// после повторного входа initApp() не делал ничего, а старые таймеры
+// продолжали опрашивать сервер с уже стёртым токеном.
+let _appStarted = false;
+const _timers = [];
 
 // ---------- адрес бэкенда ----------
 // UI и бэкенд с CS2 могут жить на разных хостах, поэтому базовый адрес API
@@ -343,8 +381,6 @@ const API_BASE = (() => {
   return norm(window.CS2_API_BASE);
 })();
 
-// Пути вида "/api/..." — и те, что бэкенд присылает в file_url/zip_url.
-const api = (path) => API_BASE + path;
 const API_LABEL = API_BASE || location.origin;
 
 // ---------- адрес библиотеки ----------
@@ -380,8 +416,46 @@ const withToken = (url) => {
   if (!token) return url;
   return url + (url.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(token);
 };
-const apiAuth = (path) => withToken(api(path));
 const libAuth = (path) => withToken(lib(path));
+
+// ---------- рендер-хосты ----------
+// Машин с CS2 может быть несколько. Их список ведёт администратор, хранит
+// библиотека (/api/render-hosts). Пустой список или недоступная библиотека —
+// один хост из config.js (API_BASE), как до появления списка.
+//
+// Демка живёт на том хосте, куда её загрузили, и задачи по ней ставятся
+// туда же; задачи и их клипы помнят свой хост в поле _host. Пути вида
+// "/api/..." — и те, что хост присылает в file_url/zip_url, — склеиваются
+// с адресом именно этого хоста.
+const hosts = { list: [] };
+const hostAuth = (host, path) => withToken(host + path);
+const jobKey = (j) => j._host + "|" + j.id;
+
+async function loadHosts() {
+  let list = [];
+  try { list = await (await authFetch(lib("/api/render-hosts"))).json(); } catch {}
+  hosts.list = list.length ? list.map((h) => h.url) : [API_BASE];
+}
+
+async function hostHealth(host) {
+  try {
+    const res = await fetch(host + "/api/health", { signal: AbortSignal.timeout(4000) });
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// Новую демку — на готовый хост с самой короткой очередью. Готовых нет —
+// на любой отвечающий: задача дождётся CS2 в его очереди.
+async function pickHost() {
+  const all = await Promise.all(hosts.list.map(async (h) => ({ h, s: await hostHealth(h) })));
+  const ready = all.filter((x) => x.s && x.s.ready)
+                   .sort((a, b) => (a.s.jobs_in_queue || 0) - (b.s.jobs_in_queue || 0));
+  if (ready.length) return ready[0].h;
+  const alive = all.find((x) => x.s);
+  return alive ? alive.h : hosts.list[0];
+}
 
 // ---------- авторизация (JWT) ----------
 // Токен получаем через POST /api/auth/login и дальше шлём заголовком
@@ -417,7 +491,9 @@ function showLogin(message) {
   // на экране остаются карточки от прошлой сессии с видео, подписанными уже
   // недействительным токеном: выглядит как «клипы есть, но не играются»,
   // хотя на самом деле сессия истекла.
-  if (window._es) { window._es.close(); window._es = null; }
+  stopEvents();
+  while (_timers.length) clearInterval(_timers.pop());
+  _appStarted = false;
   state.jobs.clear();
   state.editClips = [];
   libState.items = [];
@@ -481,78 +557,49 @@ $("logout").onclick = () => {
   clearToken();
   state.role = null;
   state.billing = null;
-  if (window._es) window._es.close();
   showLogin();
 };
 
-// ---------- среда записи ----------
-async function refreshEnv() {
-  try {
-    const s = await (await authFetch(api("/api/session"))).json();
-    const dot = $("env-dot"), text = $("env-text");
-    if (!s.enabled) {
-      dot.className = "dot ok";
-      text.textContent = "режим: рабочий стол (OBS)";
-      return;
-    }
-    const ready = s.session_running && s.cs2_ready;
-    dot.className = "dot " + (ready ? "ok" : "bad");
-    text.textContent = ready
-      ? `headless ${s.resolution} · CS2 готова`
-      : `headless · ${s.session_running ? "CS2 не запущена" : "сессия не поднята"}`;
-    // Перезапуск обрывает чужую запись, поэтому рендер пускает к нему только
-    // администратора — и кнопку показываем только ему.
-    $("env-restart").style.display = ready || state.role !== "admin" ? "none" : "inline-block";
-  } catch {
-    $("env-dot").className = "dot bad";
-    // Когда UI и бэкенд разнесены, «недоступен» почти всегда означает не тот
-    // адрес или закрытый порт — поэтому сразу называем адрес.
-    $("env-text").textContent = `бэкенд недоступен: ${API_LABEL}`;
-  }
-  await checkLibrarySession();
-}
-
-// Рендер-бэкенд авторизации не требует, библиотека требует. Поэтому истёкшая
-// сессия ничем себя не выдавала: задачи шли, клипы появлялись, а библиотека
-// молча отвечала 401 — и видео в карточках не играло, потому что <video>
-// грузится браузером напрямую, мимо authFetch, и о своём 401 никому не
-// сообщает. Тычемся в /api/auth/me: 401 внутри authFetch сам вернёт на экран
-// входа, а недоступность отметим в шапке.
+// ---------- сессия ----------
+// Рендер-хосты пускают и с истёкшим токеном не везде, а библиотека требует
+// его всегда. Истёкшая сессия иначе ничем себя не выдавала: <video> грузится
+// браузером мимо authFetch и о своём 401 никому не сообщает. Тычемся в
+// /api/auth/me: 401 внутри authFetch сам вернёт на экран входа. Заодно
+// узнаём роль — от неё зависит вкладка «Админ».
 async function checkLibrarySession() {
-  const badge = $("env-lib");
   try {
     const me = await (await authFetch(lib("/api/auth/me"))).json();
     state.role = me.role;
-    if (badge) badge.classList.remove("bad");
-  } catch (err) {
-    if (String(err && err.message) === "не авторизован") return;   // уже разлогинены
-    if (badge) {
-      badge.classList.add("bad");
-      badge.title = `Библиотека недоступна: ${LIB_LABEL}`;
-    }
+  } catch {
+    return;
   }
+  const admin = state.role === "admin";
+  $("admin-tab-btn").style.display = admin ? "" : "none";
+  if (!admin && tabVisible("admin")) showTab("cut");
 }
-$("env-restart").onclick = async () => {
-  $("env-restart").disabled = true;
-  $("env-text").textContent = "перезапускаю CS2…";
-  try { await authFetch(api("/api/session/restart"), { method: "POST" }); } catch {}
-  $("env-restart").disabled = false;
-  refreshEnv();
-};
 
 // ---------- демки ----------
-async function loadDemos(selectId) {
-  const demos = await (await authFetch(api("/api/demos"))).json();
+// Демки собираются со всех хостов: у каждой свой. В <select> значением
+// идёт индекс в state.demos, а не id — id на разных хостах могут совпасть.
+async function loadDemos(select) {
+  const perHost = await Promise.all(hosts.list.map(async (host) => {
+    try {
+      const demos = await (await authFetch(host + "/api/demos")).json();
+      return demos.map((d) => ({ host, d }));
+    } catch (err) {
+      if (String(err && err.message) === "не авторизован") throw err;
+      return [];      // хост лежит — его демок просто не видно
+    }
+  }));
+  state.demos = perHost.flat();
   const sel = $("demo");
-  sel.innerHTML = "";
-  for (const d of demos) {
-    const o = document.createElement("option");
-    o.value = d.id;
-    o.textContent = `${d.filename} (${d.size_mb} МБ)`;
-    sel.appendChild(o);
+  sel.innerHTML = state.demos.length
+    ? state.demos.map(({ d }, i) => `<option value="${i}">${esc(d.filename)} (${d.size_mb} МБ)</option>`).join("")
+    : "<option value=''>— нет демок —</option>";
+  if (select) {
+    const i = state.demos.findIndex((x) => x.host === select.host && x.d.id === select.id);
+    if (i >= 0) sel.value = String(i);
   }
-  if (selectId) sel.value = selectId;
-  if (!demos.length) sel.innerHTML = "<option value=''>— нет демок —</option>";
 }
 
 $("upload").onchange = async (e) => {
@@ -562,11 +609,12 @@ $("upload").onchange = async (e) => {
   const fd = new FormData();
   fd.append("file", file);
   try {
-    const res = await authFetch(api("/api/upload"), { method: "POST", body: fd });
+    const host = await pickHost();
+    const res = await authFetch(host + "/api/upload", { method: "POST", body: fd });
     if (!res.ok) throw new Error((await res.json()).detail);
     const info = await res.json();
-    await loadDemos(info.id);
-    showPlayers(info);
+    await loadDemos({ host, id: info.id });
+    showPlayers(info, host);
     $("demo-hint").textContent = `Готово: ${info.filename}`;
   } catch (err) {
     $("demo-hint").textContent = "Ошибка загрузки: " + err.message;
@@ -574,13 +622,14 @@ $("upload").onchange = async (e) => {
 };
 
 $("analyze").onclick = async () => {
-  const id = $("demo").value;
-  if (!id) return;
+  const item = state.demos[$("demo").value];
+  if (!item) return;
   $("analyze").disabled = true;
   $("demo-hint").textContent = "Разбираю демку (может занять минуту)…";
   try {
-    const info = await (await authFetch(api(`/api/demo/${encodeURIComponent(id)}/players`))).json();
-    showPlayers(info);
+    const url = `${item.host}/api/demo/${encodeURIComponent(item.d.id)}/players`;
+    const info = await (await authFetch(url)).json();
+    showPlayers(info, item.host);
     $("demo-hint").textContent = `${info.total_rounds} раундов, игроков: ${info.players.length}`;
   } catch (err) {
     $("demo-hint").textContent = "Не удалось разобрать демку";
@@ -588,8 +637,9 @@ $("analyze").onclick = async () => {
   $("analyze").disabled = false;
 };
 
-function showPlayers(info) {
+function showPlayers(info, host) {
   state.demoId = info.id;
+  state.demoHost = host;
   const tbody = $("players");
   tbody.innerHTML = "";
   for (const p of info.players) {
@@ -613,7 +663,8 @@ $("start").onclick = async () => {
   if (!state.demoId || !state.player) return;
   $("start").disabled = true;
   try {
-    const res = await authFetch(api("/api/jobs"), {
+    const host = state.demoHost;
+    const res = await authFetch(host + "/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -635,7 +686,7 @@ $("start").onclick = async () => {
       openBilling();
     } else {
       if (!res.ok) throw new Error((await res.json()).detail);
-      renderJob(await res.json());
+      renderJob({ ...(await res.json()), _host: host });
     }
   } catch (err) {
     $("start-hint").textContent = "Ошибка: " + err.message;
@@ -644,7 +695,7 @@ $("start").onclick = async () => {
 };
 
 function renderJob(job) {
-  state.jobs.set(job.id, job);
+  state.jobs.set(jobKey(job), job);
   const container = $("jobs");
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
   container.innerHTML = sorted.map(jobHtml).join("") ||
@@ -661,7 +712,7 @@ function jobHtml(j) {
     const inLib = Boolean(c.library_id);
     const src = inLib
       ? libAuth(`/api/library/${encodeURIComponent(c.library_id)}/file`)
-      : apiAuth(c.file_url);
+      : hostAuth(j._host, c.file_url);
     return `
     <div class="clip">
       <video controls preload="metadata" src="${esc(src)}"></video>
@@ -681,32 +732,39 @@ function jobHtml(j) {
       ${j.error_message ? `<div class="err">${esc(j.error_message)}</div>` : ""}
       ${j.quota_limited ? `<div class="upsell"><span class="hint">Ещё ${+j.quota_limited} клип(ов) не записано — закончился лимит тарифа.</span>
         <button data-act="buy">Премиум</button></div>` : ""}
-      ${j.zip_url ? `<div class="actions"><a href="${esc(apiAuth(j.zip_url))}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
+      ${j.zip_url ? `<div class="actions"><a href="${esc(hostAuth(j._host, j.zip_url))}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
       <div class="clips">${clips}</div>
     </div>`;
 }
 
 // ---------- живые обновления ----------
+// По потоку событий на каждый хост: задачи живут там, где их поставили.
+function stopEvents() {
+  while (state.es.length) state.es.pop().close();
+}
+
 function startEvents() {
-  if (window._es) window._es.close();
-  const es = new EventSource(apiAuth("/api/events"));
-  window._es = es;
-  es.addEventListener("initial", (e) => {
-    for (const j of JSON.parse(e.data)) state.jobs.set(j.id, j);
-    renderJob0();
-  });
-  es.addEventListener("job_update", (e) => {
-    const j = JSON.parse(e.data);
-    state.jobs.set(j.id, j);
-    renderJob0();
-    if (j.status === "processing" || j.status === "failed") refreshEnv();
-    // Остаток квоты меняется, когда задача закончилась и записанное списано.
-    if (j.status === "completed" || j.status === "failed") loadBilling();
-    // Рендер-хост шлёт клипы в библиотеку фоном, уже после записи, поэтому
-    // ждать конца задачи нельзя — обновляем список на каждом событии, но не
-    // чаще раза в несколько секунд.
-    scheduleLibraryRefresh();
-  });
+  stopEvents();
+  for (const host of hosts.list) {
+    const es = new EventSource(hostAuth(host, "/api/events"));
+    state.es.push(es);
+    es.addEventListener("initial", (e) => {
+      for (const j of JSON.parse(e.data)) state.jobs.set(jobKey({ ...j, _host: host }), { ...j, _host: host });
+      renderJob0();
+    });
+    es.addEventListener("job_update", (e) => {
+      const j = { ...JSON.parse(e.data), _host: host };
+      state.jobs.set(jobKey(j), j);
+      renderJob0();
+      if (tabVisible("admin")) loadAdmin();
+      // Остаток квоты меняется, когда задача закончилась и записанное списано.
+      if (j.status === "completed" || j.status === "failed") loadBilling();
+      // Рендер-хост шлёт клипы в библиотеку фоном, уже после записи, поэтому
+      // ждать конца задачи нельзя — обновляем список на каждом событии, но не
+      // чаще раза в несколько секунд.
+      scheduleLibraryRefresh();
+    });
+  }
 }
 // Карточки задач перерисовываются целиком — кнопка «Премиум» в них
 // обрабатывается делегированием, как и в сетке фрагментов.
@@ -737,7 +795,7 @@ function refreshEditClips() {
         : (/^\/api\/clips\/([^/]+)\/(.+)$/.exec(c.file_url || "")
             ? { job_id: RegExp.$1, filename: RegExp.$2 } : null);
       if (!body) continue;
-      items.push({ body,
+      items.push({ body, host: j._host,
                    label: `${j.player_name} · ${c.filename} · ${c.duration_sec}s`
                           + (c.library_id ? " · из библиотеки" : "") });
     }
@@ -756,12 +814,12 @@ $("edit-run").onclick = async () => {
   $("edit-run").disabled = true;
   $("edit-hint").textContent = "Собираю…";
   try {
-    const res = await fetch(apiAuth("/api/vertical"), {
+    const res = await fetch(hostAuth(it.host, "/api/vertical"), {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode, ...it.body }) });
     if (!res.ok) throw new Error(((await res.json()).detail) || res.status);
     const v = await res.json();
-    const src = v.in_library ? libAuth(v.file_url) : apiAuth(v.file_url);
+    const src = v.in_library ? libAuth(v.file_url) : hostAuth(it.host, v.file_url);
     $("edit-result").innerHTML = `
       <div class="clip">
         <video controls preload="metadata" src="${esc(src)}" style="max-height:70vh"></video>
@@ -1129,12 +1187,147 @@ async function waitForPro() {
   alert("Оплата ещё не подтвердилась. Если деньги списаны, премиум включится в течение нескольких минут.");
 }
 
+// ---------- администрирование ----------
+// Адреса сервисов и состояние хостов видит только администратор: обычному
+// пользователю они ничего не говорят. Список хостов правится в библиотеке,
+// состояние каждого UI спрашивает у самого хоста (/api/health и /api/session).
+const errText = async (res) => {
+  try {
+    const d = (await res.json()).detail;
+    if (Array.isArray(d)) return d.map((x) => String(x.msg || "").replace(/^Value error, /, "")).join("; ");
+    return d || `HTTP ${res.status}`;
+  } catch { return `HTTP ${res.status}`; }
+};
+
+async function hostState(host) {
+  const health = await hostHealth(host);
+  if (!health) return { ok: false, text: "недоступен", queue: "—" };
+  let text = health.ready ? "CS2 готова" : (health.detail || "не готов");
+  try {
+    const s = await (await authFetch(host + "/api/session")).json();
+    if (!s.enabled) text = "рабочий стол (OBS)";
+    else if (health.ready) text = `headless ${s.resolution} · CS2 готова`;
+  } catch {}
+  return { ok: Boolean(health.ready), text, queue: health.jobs_in_queue ?? "—" };
+}
+
+const stateCell = (st) => st
+  ? `<span class="dot ${st.ok ? "ok" : "bad"}" style="display:inline-block;margin-right:6px"></span>${esc(st.text)}`
+  : `<span class="hint">выключен</span>`;
+
+let _adminLoading = false;
+async function loadAdmin() {
+  if (state.role !== "admin" || _adminLoading) return;
+  _adminLoading = true;
+  try {
+    let list = [], listError = null;
+    try {
+      const res = await authFetch(lib("/api/admin/render-hosts"));
+      if (!res.ok) throw new Error(await errText(res));
+      list = await res.json();
+    } catch (err) {
+      listError = err.message;
+    }
+    const enabled = list.filter((h) => h.enabled);
+    const fallback = enabled.length ? null : await hostState(API_BASE);
+    const states = await Promise.all(list.map((h) => (h.enabled ? hostState(h.url) : null)));
+
+    $("admin-services").innerHTML = `
+      <tr><td>Библиотека и авторизация</td><td>${esc(LIB_LABEL)}</td>
+          <td>${stateCell({ ok: !listError, text: listError ? "ошибка: " + listError : "работает" })}</td></tr>
+      <tr><td>Рендер по умолчанию (config.js)</td><td>${esc(API_LABEL)}</td>
+          <td>${fallback ? stateCell(fallback) : '<span class="hint">не используется: есть включённые хосты</span>'}</td></tr>`;
+
+    $("admin-hosts").innerHTML = list.map((h, i) => `
+      <tr data-id="${esc(h.id)}" data-url="${esc(h.url)}">
+        <td>${esc(h.name || "—")}</td>
+        <td>${esc(h.url)}</td>
+        <td>${stateCell(states[i])}</td>
+        <td>${states[i] ? esc(states[i].queue) : "—"}</td>
+        <td><input type="checkbox" data-act="toggle" ${h.enabled ? "checked" : ""}></td>
+        <td>${h.enabled ? '<button class="ghost" data-act="restart">Перезапустить CS2</button>' : ""}
+            <button class="ghost" data-act="delete">Удалить</button></td>
+      </tr>`).join("");
+    const note = $("admin-hosts-note");
+    note.style.display = enabled.length ? "none" : "block";
+    note.textContent = listError ? `Список хостов не загрузился: ${listError}`
+      : `Включённых хостов нет — задачи идут на адрес из config.js: ${API_LABEL}`;
+  } finally {
+    _adminLoading = false;
+  }
+}
+
+// Список хостов поменялся — пользователю этой вкладки тоже надо пересобрать
+// демки и потоки событий; у остальных подхватится при следующем входе.
+async function hostsChanged() {
+  await loadHosts();
+  startEvents();
+  loadDemos().catch(() => {});
+  loadAdmin();
+}
+
+$("host-add").onclick = async () => {
+  const url = $("host-url").value.trim();
+  if (!url) return;
+  $("host-add").disabled = true;
+  $("host-hint").textContent = "";
+  try {
+    const res = await authFetch(lib("/api/admin/render-hosts"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, name: $("host-name").value.trim() }),
+    });
+    if (!res.ok) throw new Error(await errText(res));
+    $("host-url").value = $("host-name").value = "";
+    const health = await hostHealth(url.replace(/\/+$/, ""));
+    // Хост не ответил — не обязательно ошибка (его могут поднять позже), но
+    // чаще всего это не тот порт или CORS без адреса этого UI.
+    $("host-hint").textContent = health ? "Хост добавлен"
+      : "Хост добавлен, но не отвечает: проверьте адрес, порт и CORS на хосте";
+    await hostsChanged();
+  } catch (err) {
+    $("host-hint").textContent = "Ошибка: " + err.message;
+  }
+  $("host-add").disabled = false;
+};
+
+$("admin-hosts").addEventListener("change", async (e) => {
+  if (e.target.dataset.act !== "toggle") return;
+  const row = e.target.closest("tr");
+  await authFetch(lib(`/api/admin/render-hosts/${encodeURIComponent(row.dataset.id)}`), {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled: e.target.checked }),
+  }).catch(() => {});
+  hostsChanged();
+});
+
+$("admin-hosts").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const row = btn.closest("tr");
+  if (btn.dataset.act === "restart") {
+    // Перезапуск обрывает запись, которая идёт на хосте прямо сейчас.
+    if (!confirm(`Перезапустить CS2 на ${row.dataset.url}? Текущая запись на нём оборвётся.`)) return;
+    btn.disabled = true;
+    btn.textContent = "перезапускаю…";
+    try { await authFetch(row.dataset.url + "/api/session/restart", { method: "POST" }); } catch {}
+    return loadAdmin();
+  }
+  if (btn.dataset.act === "delete") {
+    if (!confirm(`Убрать хост ${row.dataset.url} из списка? Его задачи и демки пропадут из интерфейса.`)) return;
+    await authFetch(lib(`/api/admin/render-hosts/${encodeURIComponent(row.dataset.id)}`),
+                    { method: "DELETE" }).catch(() => {});
+    hostsChanged();
+  }
+});
+
 // ---------- вкладки ----------
 const TAB_KEY = "cs2_tab";
 
 function showTab(name) {
-  const known = ["cut", "edit", "library"];
-  if (!known.includes(name)) name = "cut";
+  const known = ["cut", "edit", "library", "admin"];
+  if (!known.includes(name) || (name === "admin" && state.role !== "admin")) name = "cut";
   for (const t of known) {
     $("tab-" + t).style.display = t === name ? "" : "none";
   }
@@ -1148,34 +1341,34 @@ function showTab(name) {
   // Список клипов для редактирования наполняется из обновлений задач, но на
   // скрытой вкладке его никто не видел — пересобираем на всякий случай.
   if (name === "edit") refreshEditClips();
+  if (name === "admin") loadAdmin();
 }
 
 for (const b of document.querySelectorAll("#tabs button")) {
   b.onclick = () => showTab(b.dataset.tab);
 }
 
-function libraryTabVisible() {
-  const pane = $("tab-library");
+function tabVisible(name) {
+  const pane = $("tab-" + name);
   return Boolean(pane) && pane.style.display !== "none";
 }
+const libraryTabVisible = () => tabVisible("library");
 
 // ---------- запуск ----------
-let _appStarted = false;
-function initApp() {
+async function initApp() {
   if (_appStarted) return;
   _appStarted = true;
-  $("env-api").textContent = API_LABEL;
-  // Хосты бывают разные, и «недоступен» без адреса заставляет гадать, какой
-  // из двух молчит. Совпадают — второй ярлык только мешает.
-  $("env-lib").textContent = LIB_BASE === API_BASE ? "" : LIB_LABEL;
-  $("env-lib").style.display = LIB_BASE === API_BASE ? "none" : "";
-  loadDemos();
+  await checkLibrarySession();      // роль нужна до выбора вкладки
+  await loadHosts();
+  loadDemos().catch(() => {});
   let saved = "cut";
   try { saved = localStorage.getItem(TAB_KEY) || "cut"; } catch {}
   showTab(saved);          // на вкладке библиотеки сам вызовет loadLibrary()
-  refreshEnv();
   startEvents();
-  setInterval(refreshEnv, 15000);
+  _timers.push(setInterval(() => {
+    checkLibrarySession();
+    if (tabVisible("admin")) loadAdmin();
+  }, 15000));
   loadBilling().then(() => {
     // Возврат со страницы оплаты ЮKassa.
     const url = new URL(location.href);
