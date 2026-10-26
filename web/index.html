@@ -224,7 +224,7 @@
   <section class="card" id="params-card" style="display:none">
     <h2>3. Параметры нарезки</h2>
     <div class="row">
-      <div><label for="min-kills">Мин. фрагов в клипе</label>
+      <div><label for="min-kills" title="Сколько убийств игрок должен сделать за раунд, чтобы раунд попал в нарезку. Если убийства разнесены по времени, в клип идут только моменты вокруг них, склеенные подряд">Мин. фрагов за раунд</label>
         <input type="number" id="min-kills" value="2" min="1" max="5"></div>
       <div><label for="pre">Секунд до фрага</label>
         <input type="number" id="pre" value="8" min="1" max="30" step="0.5"></div>
@@ -234,8 +234,14 @@
         <select id="only-hs"><option value="false">нет</option><option value="true">да</option></select></div>
       <div><label for="xray" title="spec_show_xray: враги светятся сквозь стены. CS2 включает его по умолчанию, в хайлайтах обычно лишний">Рентген сквозь стены</label>
         <select id="xray"><option value="false">нет</option><option value="true">да</option></select></div>
-      <div><label for="slowmo" title="Каждое убийство замедляется прямо в игре (demo_timescale) — от секунды до него до полсекунды после, движение остаётся плавным. На замедленных отрезках звук ниже и глуше, с лёгким эхом. Клип получается длиннее игрового отрезка, и запись идёт дольше">Слоумо на фраге</label>
+      <div><label for="slowmo" title="Каждое убийство замедляется прямо в игре (demo_timescale) — по полсекунды до и после него, движение остаётся плавным. На замедленных отрезках звук ниже и глуше, с лёгким эхом. Клип получается длиннее игрового отрезка, и запись идёт дольше">Слоумо на фраге</label>
         <label class="check"><input type="checkbox" id="slowmo"> замедлять момент убийства</label></div>
+      <div><label for="show-hud" title="Здоровье, броня, патроны, деньги, радар">HUD</label>
+        <label class="check"><input type="checkbox" id="show-hud" checked> показывать HUD</label></div>
+      <div><label for="show-killfeed" title="Список убийств в правом верхнем углу">Килфид</label>
+        <label class="check"><input type="checkbox" id="show-killfeed" checked> показывать килфид</label></div>
+      <div><label for="victim-pov" title="После каждого фрага — его повтор глазами убитого: пара секунд до смерти. Клип становится длиннее, запись идёт дольше">Повтор из глаз убитого</label>
+        <label class="check"><input type="checkbox" id="victim-pov"> показывать фраг глазами жертвы</label></div>
     </div>
     <div class="actions">
       <button id="start">Записать хайлайты</button>
@@ -619,6 +625,9 @@ $("start").onclick = async () => {
         post_kill_sec: +$("post").value,
         xray: $("xray").value === "true",
         slowmo: $("slowmo").checked,
+        victim_pov: $("victim-pov").checked,
+        hud: $("show-hud").checked,
+        killfeed: $("show-killfeed").checked,
       }),
     });
     if (res.status === 402) {
