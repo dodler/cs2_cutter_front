@@ -240,8 +240,8 @@
         <label class="check"><input type="checkbox" id="show-killfeed" checked> показывать килфид</label></div>
       <div><label for="victim-pov" title="На момент каждого фрага — от секунды до него до полсекунды после, как у слоумо — камера переходит в глаза убитого, остальное время показывается глазами игрока. Без повторов, длина клипа не меняется">Вид из глаз убитого</label>
         <label class="check"><input type="checkbox" id="victim-pov"> показывать фраг глазами жертвы</label></div>
-      <div><label for="vertical" title="CS2 рендерит сразу в 1080×1920 и сама раскладывает HUD и килфид под узкий экран — в отличие от обрезки готового клипа, где они остаются за краями. Если прошлая задача была в другой ориентации, игра перезапускается (~20 с)">Вертикально 9:16</label>
-        <label class="check"><input type="checkbox" id="vertical"> для шортсов, с HUD и килфидом</label></div>
+      <div><label for="vertical" title="CS2 рендерит сразу в 1080×1920. В кадре свой набор для шортсов: килфид, здоровье с бронёй и прицел, без радара; флажки HUD и килфида на него не влияют. Если прошлая задача была в другой ориентации, игра перезапускается (~20 с)">Вертикально 9:16</label>
+        <label class="check"><input type="checkbox" id="vertical"> для шортсов: килфид, хп, броня, прицел</label></div>
     </div>
     <div class="actions">
       <button id="start">Записать хайлайты</button>
@@ -809,6 +809,19 @@ async function cancelJob(key) {
   }
   renderJob0();
 }
+
+// В шортсе набор HUD фиксирован (профиль shorts на рендере), поэтому
+// флажки HUD и килфида гасятся, а не тихо игнорируются.
+function syncVerticalHud() {
+  const v = $("vertical").checked;
+  for (const id of ["show-hud", "show-killfeed"]) {
+    $(id).disabled = v;
+    $(id).closest("div").style.opacity = v ? 0.45 : "";
+    $(id).closest("div").title = v ? "В вертикальном режиме набор HUD фиксирован" : "";
+  }
+}
+$("vertical").addEventListener("change", syncVerticalHud);
+syncVerticalHud();
 
 function renderJob0() {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
