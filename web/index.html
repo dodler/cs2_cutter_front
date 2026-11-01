@@ -74,6 +74,7 @@
   .badge.processing { background: #3a2f12; color: var(--accent); }
   .badge.completed { background: #16321a; color: var(--ok); }
   .badge.failed { background: #3a1a17; color: var(--err); }
+  .badge.cancelled { background: var(--line); color: var(--muted); }
   .bar { height: 6px; background: var(--line); border-radius: 3px; margin: 10px 0; overflow: hidden; }
   .bar > i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
   .clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
@@ -730,7 +731,11 @@ function jobHtml(j) {
     <div class="job">
       <div class="job-head">
         <div><b>${esc(j.player_name)}</b> <span class="hint">· ${esc(j.demo_id)}</span></div>
-        <span class="badge ${esc(j.status)}">${esc(j.status)}</span>
+        <span>
+          ${j.status === "pending" || j.status === "processing"
+            ? `<button class="ghost" data-act="cancel" data-key="${esc(jobKey(j))}"${j._stopping ? " disabled" : ""}>${j._stopping ? "Останавливаю…" : "Остановить"}</button>` : ""}
+          <span class="badge ${esc(j.status)}">${esc(j.status)}</span>
+        </span>
       </div>
       <div class="bar"><i style="width:${j.progress_percent}%"></i></div>
       <div class="hint">${esc(j.current_step || "")}${j.total_clips ? ` · клип ${j.current_clip_index}/${j.total_clips}` : ""}</div>
@@ -759,11 +764,14 @@ function startEvents() {
     });
     es.addEventListener("job_update", (e) => {
       const j = { ...JSON.parse(e.data), _host: host };
+      // «Останавливаю…» держится, пока задача не дошла до проверки отмены.
+      const prev = state.jobs.get(jobKey(j));
+      if (prev && prev._stopping && j.status === "processing") j._stopping = true;
       state.jobs.set(jobKey(j), j);
       renderJob0();
       if (tabVisible("admin")) loadAdmin();
       // Остаток квоты меняется, когда задача закончилась и записанное списано.
-      if (j.status === "completed" || j.status === "failed") loadBilling();
+      if (j.status === "completed" || j.status === "failed" || j.status === "cancelled") loadBilling();
       // Рендер-хост шлёт клипы в библиотеку фоном, уже после записи, поэтому
       // ждать конца задачи нельзя — обновляем список на каждом событии, но не
       // чаще раза в несколько секунд.
@@ -775,7 +783,32 @@ function startEvents() {
 // обрабатывается делегированием, как и в сетке фрагментов.
 $("jobs").addEventListener("click", (e) => {
   if (e.target.closest("[data-act=buy]")) openBilling();
+  const stop = e.target.closest("[data-act=cancel]");
+  if (stop) cancelJob(stop.dataset.key);
 });
+
+// Идущая задача обрывается на ближайшей проверке (обычно секунды, во время
+// сборки видео — до минуты-двух), поэтому кнопка сразу гаснет, а итоговый
+// статус «cancelled» приходит событием job_update.
+async function cancelJob(key) {
+  const j = state.jobs.get(key);
+  if (!j) return;
+  if (!confirm(`Остановить задачу ${j.player_name}? Уже записанные клипы останутся.`)) return;
+  j._stopping = true;
+  renderJob0();
+  try {
+    const res = await authFetch(`${j._host}/api/jobs/${encodeURIComponent(j.id)}/cancel`,
+                                { method: "POST" });
+    if (!res.ok) throw new Error((await res.json()).detail || res.status);
+    const upd = { ...(await res.json()), _host: j._host };
+    if (upd.status === "processing") upd._stopping = true;
+    state.jobs.set(key, upd);
+  } catch (err) {
+    j._stopping = false;
+    alert("Не удалось остановить задачу: " + err.message);
+  }
+  renderJob0();
+}
 
 function renderJob0() {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
