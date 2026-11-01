@@ -239,6 +239,8 @@
         <label class="check"><input type="checkbox" id="show-killfeed" checked> показывать килфид</label></div>
       <div><label for="victim-pov" title="На момент каждого фрага — от секунды до него до полсекунды после, как у слоумо — камера переходит в глаза убитого, остальное время показывается глазами игрока. Без повторов, длина клипа не меняется">Вид из глаз убитого</label>
         <label class="check"><input type="checkbox" id="victim-pov"> показывать фраг глазами жертвы</label></div>
+      <div><label for="vertical" title="CS2 рендерит сразу в 1080×1920 и сама раскладывает HUD и килфид под узкий экран — в отличие от обрезки готового клипа, где они остаются за краями. Если прошлая задача была в другой ориентации, игра перезапускается (~20 с)">Вертикально 9:16</label>
+        <label class="check"><input type="checkbox" id="vertical"> для шортсов, с HUD и килфидом</label></div>
     </div>
     <div class="actions">
       <button id="start">Записать хайлайты</button>
@@ -257,7 +259,9 @@
     <h2>Редактирование</h2>
     <p class="hint" style="margin:-6px 0 14px">
       Вертикальный формат 1080×1920 для шортсов и рилсов. Исходный клип
-      остаётся на месте, версия собирается рядом.
+      остаётся на месте, версия собирается рядом. При обрезке HUD и килфид
+      уходят за края — чтобы они были в кадре, включите «Вертикально 9:16»
+      при записи хайлайтов.
     </p>
     <div class="row">
       <div>
@@ -679,6 +683,7 @@ $("start").onclick = async () => {
         victim_pov: $("victim-pov").checked,
         hud: $("show-hud").checked,
         killfeed: $("show-killfeed").checked,
+        vertical: $("vertical").checked,
       }),
     });
     if (res.status === 402) {
