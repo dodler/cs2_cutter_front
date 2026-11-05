@@ -620,12 +620,33 @@ async function loadDemos(select) {
   state.demos = perHost.flat();
   const sel = $("demo");
   sel.innerHTML = state.demos.length
-    ? state.demos.map(({ d }, i) => `<option value="${i}">${esc(d.filename)} (${d.size_mb} МБ)</option>`).join("")
+    ? state.demos.map(({ d }, i) => `<option value="${i}" title="${esc(d.filename)}">${esc(demoLabel(d))}</option>`).join("")
     : "<option value=''>— нет демок —</option>";
   if (select) {
     const i = state.demos.findIndex((x) => x.host === select.host && x.d.id === select.id);
     if (i >= 0) sel.value = String(i);
   }
+}
+
+// «Anubis · 05.11.2026 · 13:11». Карту и счёт рендер берёт из самой демки,
+// дату — из файла (в заголовке CS2 её нет). Старый рендер или не
+// распакованная демка их не дают — тогда имя файла.
+function demoLabel(d) {
+  const parts = [];
+  if (d.map) parts.push(prettyMap(d.map));
+  if (d.played_at) parts.push(new Date(d.played_at * 1000).toLocaleDateString("ru-RU"));
+  if (Array.isArray(d.score)) parts.push(`${+d.score[0]}:${+d.score[1]}`);
+  return d.map ? parts.join(" · ") : `${d.filename} (${d.size_mb} МБ)`;
+}
+
+function jobDemoLabel(j) {
+  const it = state.demos.find((x) => x.host === j._host && x.d.id === j.demo_id);
+  return it ? demoLabel(it.d) : j.demo_id;
+}
+
+function prettyMap(m) {
+  const s = String(m).replace(/^(de|cs|ar|dz)_/, "").replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 $("upload").onchange = async (e) => {
@@ -816,7 +837,7 @@ function jobHtml(j) {
   return `
     <div class="job">
       <div class="job-head">
-        <div><b>${esc(j.player_name)}</b> <span class="hint">· ${esc(j.demo_id)}</span></div>
+        <div><b>${esc(j.player_name)}</b> <span class="hint" title="${esc(j.demo_id)}">· ${esc(jobDemoLabel(j))}</span></div>
         <span>
           ${j.status === "pending" || j.status === "processing"
             ? `<button class="ghost" data-act="cancel" data-key="${esc(jobKey(j))}"${j._stopping ? " disabled" : ""}>${j._stopping ? "Останавливаю…" : "Остановить"}</button>` : ""}
