@@ -134,6 +134,27 @@
   .plan.empty { color: var(--err); border-color: var(--err); }
   .plans { display: grid; gap: 10px; margin: 14px 0; }
   .plans button { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; }
+  /* --- раунды игрока: один раунд — один хайлайт --- */
+  .rounds { display: grid; gap: 8px; margin-top: 16px; }
+  .rounds-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .rounds-head h3 { margin: 0; font-size: 15px; }
+  .round { display: grid; grid-template-columns: 130px 1fr auto; gap: 12px; align-items: center;
+           background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .round.big { border-color: #5a4518; }
+  .round-num { font-weight: 600; }
+  .round-num small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; margin-top: 2px; }
+  .round-num .mk { color: var(--accent); }
+  .kills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .kill { font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+          padding: 3px 8px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .kill .w { color: var(--muted); }
+  .kill .hs { color: var(--accent); font-weight: 600; margin-left: 4px; }
+  .round button { padding: 7px 14px; font-size: 13px; }
+  .round button.done { background: transparent; border: 1px solid var(--ok); color: var(--ok); }
+  @media (max-width: 560px) {
+    .round { grid-template-columns: 1fr auto; }
+    .round .kills { grid-column: 1 / -1; order: 3; }
+  }
   .upsell { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .upsell button { width: auto; padding: 5px 12px; font-size: 13px; }
 </style>
@@ -143,7 +164,7 @@
   <h2 style="margin-top:0">Вход</h2>
   <div style="display:grid; gap:10px">
     <button id="login-steam" class="steam-btn">Войти через Steam</button>
-    <p class="hint" style="margin:0">Бесплатно — 2 клипа в месяц, в премиуме — 100.</p>
+    <p class="hint" style="margin:0">Бесплатно — 2 клипа в месяц с концовкой-логотипом, в премиуме — 100 и без неё.</p>
     <div class="err" id="login-error" style="display:none"></div>
     <!-- Вход по паролю — только администратор (им же логинится рендер-хост),
          поэтому он спрятан, а не убран. -->
@@ -167,7 +188,7 @@
 <div class="modal" id="billing-modal" style="display:none">
   <div class="box" style="max-width:460px">
     <h2 style="margin:0 0 6px">Премиум</h2>
-    <p class="hint" id="billing-text" style="margin:0">100 клипов за период вместо 2 в месяц.</p>
+    <p class="hint" id="billing-text" style="margin:0">100 клипов за период вместо 2 в месяц, без концовки с логотипом.</p>
     <div class="plans" id="billing-plans"></div>
     <div class="err" id="billing-error" style="display:none"></div>
     <div class="actions"><button class="ghost" id="billing-close" style="width:auto">Закрыть</button></div>
@@ -211,19 +232,9 @@
     </div>
   </section>
 
-  <section class="card" id="players-card" style="display:none">
-    <h2>2. Игрок</h2>
-    <table>
-      <thead><tr><th>Ник</th><th>Киллы</th><th>ХС</th><th>Раунды</th><th>Оружие</th></tr></thead>
-      <tbody id="players"></tbody>
-    </table>
-  </section>
-
   <section class="card" id="params-card" style="display:none">
-    <h2>3. Параметры нарезки</h2>
+    <h2>2. Параметры нарезки</h2>
     <div class="row">
-      <div><label for="min-kills" title="Сколько убийств игрок должен сделать за раунд, чтобы раунд попал в нарезку. Если убийства разнесены по времени, в клип идут только моменты вокруг них, склеенные подряд">Мин. фрагов за раунд</label>
-        <input type="number" id="min-kills" value="2" min="1" max="5"></div>
       <div><label for="pre">Секунд до фрага</label>
         <input type="number" id="pre" value="8" min="1" max="30" step="0.5"></div>
       <div><label for="post">Секунд после</label>
@@ -247,10 +258,16 @@
           <option value="square">1:1 — квадрат (килфид, хп, броня, прицел)</option>
         </select></div>
     </div>
-    <div class="actions">
-      <button id="start">Записать хайлайты</button>
-      <span class="hint" id="start-hint"></span>
-    </div>
+  </section>
+
+  <section class="card" id="players-card" style="display:none">
+    <h2>3. Игрок и раунды</h2>
+    <p class="hint" style="margin:-6px 0 12px">Выберите игрока — ниже появятся его раунды. Один раунд — один хайлайт.</p>
+    <table>
+      <thead><tr><th>Ник</th><th>Киллы</th><th>ХС</th><th>Раунды</th><th>Оружие</th></tr></thead>
+      <tbody id="players"></tbody>
+    </table>
+    <div id="rounds-panel" style="display:none"></div>
   </section>
 
   <section class="card">
@@ -355,7 +372,7 @@
 <script src="config.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-const state = { demoId: null, demoHost: null, demos: [], player: null, jobs: new Map(),
+const state = { demoId: null, demoHost: null, demos: [], player: null, queuedRounds: new Set(), jobs: new Map(),
                 editClips: [], role: null, billing: null, es: [] };
 // Запущено ли приложение и его таймеры: выход всё это сбрасывает, иначе
 // после повторного входа initApp() не делал ничего, а старые таймеры
@@ -649,28 +666,85 @@ $("analyze").onclick = async () => {
 function showPlayers(info, host) {
   state.demoId = info.id;
   state.demoHost = host;
+  state.player = null;
+  state.queuedRounds = new Set();
   const tbody = $("players");
   tbody.innerHTML = "";
   for (const p of info.players) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${p.name}</td><td>${p.kills}</td><td>${p.headshots}</td>
-                    <td>${p.rounds_active}</td><td>${(p.weapons || []).slice(0, 4).join(", ")}</td>`;
+    tr.innerHTML = `<td>${esc(p.name)}</td><td>${+p.kills}</td><td>${+p.headshots}</td>
+                    <td>${+p.rounds_active}</td><td>${esc((p.weapons || []).slice(0, 4).join(", "))}</td>`;
     tr.onclick = () => {
       [...tbody.children].forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
       state.player = p.name;
-      $("params-card").style.display = "block";
-      $("start-hint").textContent = `Игрок: ${p.name}`;
+      state.queuedRounds = new Set();
+      showRounds(p);
     };
     tbody.appendChild(tr);
   }
+  $("rounds-panel").style.display = "none";
+  $("params-card").style.display = "block";
   $("players-card").style.display = "block";
 }
 
+// ---------- раунды игрока ----------
+// Один раунд — один хайлайт: кнопка раунда ставит задачу с rounds=[N].
+// Параметры (секунды до/после, слоумо, кадр…) берутся из карточки выше в
+// момент клика, так что разные раунды можно резать с разными настройками.
+const MULTI = { 2: "2k", 3: "3k", 4: "4k", 5: "ACE" };
+
+function showRounds(p) {
+  const panel = $("rounds-panel");
+  panel.style.display = "block";
+  if (!Array.isArray(p.rounds)) {
+    // Рендер-хост старой версии не отдаёт раунды — честно говорим об этом.
+    panel.innerHTML = `<p class="err">Рендер-хост не отдал раунды игрока — его нужно обновить.</p>`;
+    return;
+  }
+  const rows = p.rounds.map((r) => {
+    const n = r.kills.length;
+    const hs = r.kills.filter((k) => k.headshot).length;
+    const mk = MULTI[Math.min(n, 5)];
+    const kills = r.kills.map((k) =>
+      `<span class="kill" title="${esc(k.weapon)} → ${esc(k.victim)}${k.headshot ? ", в голову" : ""}">`
+      + `<span class="w">${esc(k.weapon)}</span> ${esc(k.victim)}${k.headshot ? '<span class="hs">HS</span>' : ""}</span>`
+    ).join("");
+    const queued = state.queuedRounds.has(r.round);
+    return `
+      <div class="round${n >= 3 ? " big" : ""}">
+        <div class="round-num">Раунд ${+r.round}
+          <small>${n} ${plural(n, "килл", "килла", "киллов")}${mk ? ` · <span class="mk">${mk}</span>` : ""}${hs ? ` · ${hs} HS` : ""}</small></div>
+        <div class="kills">${kills}</div>
+        <button data-round="${+r.round}" class="${queued ? "done" : ""}"${queued ? " disabled" : ""}>${queued ? "В задачах ✓" : "Нарезать"}</button>
+      </div>`;
+  }).join("");
+  panel.innerHTML = `
+    <div class="rounds">
+      <div class="rounds-head"><h3>${esc(p.name)}: раунды с киллами</h3>
+        <span class="hint" id="rounds-hint">${p.rounds.length} ${plural(p.rounds.length, "раунд", "раунда", "раундов")}</span></div>
+      ${rows || '<p class="empty">У игрока нет киллов вне разминки.</p>'}
+    </div>`;
+}
+
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
+$("rounds-panel").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-round]");
+  if (btn && !btn.disabled) cutRound(+btn.dataset.round, btn);
+});
+
 // ---------- задачи ----------
-$("start").onclick = async () => {
+async function cutRound(round, btn) {
   if (!state.demoId || !state.player) return;
-  $("start").disabled = true;
+  const hint = $("rounds-hint");
+  btn.disabled = true;
+  btn.textContent = "Ставлю…";
   try {
     const host = state.demoHost;
     const res = await authFetch(host + "/api/jobs", {
@@ -679,7 +753,7 @@ $("start").onclick = async () => {
       body: JSON.stringify({
         demo_id: state.demoId,
         player_name: state.player,
-        min_kills: +$("min-kills").value,
+        rounds: [round],
         only_headshots: $("only-hs").value === "true",
         pre_kill_sec: +$("pre").value,
         post_kill_sec: +$("post").value,
@@ -693,17 +767,24 @@ $("start").onclick = async () => {
       }),
     });
     if (res.status === 402) {
-      $("start-hint").textContent = (await res.json()).detail;
+      hint.textContent = (await res.json()).detail;
       openBilling();
-    } else {
-      if (!res.ok) throw new Error((await res.json()).detail);
-      renderJob({ ...(await res.json()), _host: host });
+      btn.disabled = false;
+      btn.textContent = "Нарезать";
+      return;
     }
+    if (!res.ok) throw new Error((await res.json()).detail);
+    renderJob({ ...(await res.json()), _host: host });
+    state.queuedRounds.add(round);
+    btn.classList.add("done");
+    btn.textContent = "В задачах ✓";
+    hint.textContent = `Раунд ${round} поставлен в очередь`;
   } catch (err) {
-    $("start-hint").textContent = "Ошибка: " + err.message;
+    btn.disabled = false;
+    btn.textContent = "Нарезать";
+    hint.textContent = "Ошибка: " + err.message;
   }
-  $("start").disabled = false;
-};
+}
 
 function renderJob(job) {
   state.jobs.set(jobKey(job), job);
@@ -1156,7 +1237,7 @@ function openBilling() {
   $("billing-error").style.display = "none";
   $("billing-text").textContent = b.plan === "pro"
     ? `Премиум оплачен до ${new Date(b.paid_until * 1000).toLocaleDateString()}. Оплата за 30 дней добавится после этой даты.`
-    : "100 клипов за период вместо 2 в месяц.";
+    : "100 клипов за период вместо 2 в месяц, без концовки с логотипом.";
   $("billing-plans").innerHTML = providers
     // Действующую подписку Paddle второй раз не оформить — лишний платёж.
     .filter(p => !(b.plan === "pro" && p.recurring))
