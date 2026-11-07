@@ -251,6 +251,8 @@
         <label class="check"><input type="checkbox" id="show-killfeed" checked> показывать килфид</label></div>
       <div><label for="victim-pov" title="На момент каждого фрага — от секунды до него до полсекунды после, как у слоумо — камера переходит в глаза убитого, остальное время показывается глазами игрока. Без повторов, длина клипа не меняется">Вид из глаз убитого</label>
         <label class="check"><input type="checkbox" id="victim-pov"> показывать фраг глазами жертвы</label></div>
+      <div><label for="thirdperson" title="Камера за правым плечом игрока, смотрит вдоль его прицела — как в трансляциях. Снимается покадрово: каждые 5 секунд клипа — около полутора минут записи. HUD игрока нет, килфид — по флажку. Слоумо и вид глазами убитого с ней не сочетаются">Камера</label>
+        <label class="check"><input type="checkbox" id="thirdperson"> от третьего лица, за плечом</label></div>
       <div><label for="frame" title="9:16 и 1:1 CS2 рендерит сразу в 1080×1920 или 1080×1080. В кадре свой набор для шортсов: прицел, килфид, здоровье с бронёй; флажки HUD и килфида на него не влияют. Квадрат — середина обычного кадра во всю высоту. Если прошлая задача была в другой форме кадра, игра перезапускается (~20 с)">Кадр</label>
         <select id="frame">
           <option value="landscape">16:9 — обычный</option>
@@ -785,6 +787,7 @@ async function cutRound(round, btn) {
         killfeed: $("show-killfeed").checked,
         vertical: $("frame").value === "vertical",
         square: $("frame").value === "square",
+        thirdperson: $("thirdperson").checked,
       }),
     });
     if (res.status === 402) {
@@ -929,6 +932,21 @@ function syncVerticalHud() {
 }
 $("frame").addEventListener("change", syncVerticalHud);
 syncVerticalHud();
+
+// Третье лицо рендер не сочетает со слоумо и видом жертвы (отвечает 422) —
+// гасим их здесь же, а HUD игрока у такой камеры нет вовсе.
+function syncThirdPerson() {
+  const tp = $("thirdperson").checked;
+  for (const id of ["slowmo", "victim-pov", "show-hud"]) {
+    if (tp && id !== "show-hud") $(id).checked = false;
+    const off = tp || (id === "show-hud" && $("frame").value !== "landscape");
+    $(id).disabled = off;
+    $(id).closest("div").style.opacity = off ? 0.45 : "";
+  }
+}
+$("thirdperson").addEventListener("change", syncThirdPerson);
+$("frame").addEventListener("change", syncThirdPerson);
+syncThirdPerson();
 
 function renderJob0() {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
