@@ -251,8 +251,13 @@
         <label class="check"><input type="checkbox" id="show-killfeed" checked> показывать килфид</label></div>
       <div><label for="victim-pov" title="На момент каждого фрага — от секунды до него до полсекунды после, как у слоумо — камера переходит в глаза убитого, остальное время показывается глазами игрока. Без повторов, длина клипа не меняется">Вид из глаз убитого</label>
         <label class="check"><input type="checkbox" id="victim-pov"> показывать фраг глазами жертвы</label></div>
-      <div><label for="thirdperson" title="Камера за правым плечом игрока, смотрит вдоль его прицела — как в трансляциях. Снимается покадрово: каждые 5 секунд клипа — около полутора минут записи. HUD игрока нет, килфид — по флажку. Слоумо и вид глазами убитого с ней не сочетаются">Камера</label>
-        <label class="check"><input type="checkbox" id="thirdperson"> от третьего лица, за плечом</label></div>
+      <div><label for="thirdperson" title="От третьего лица камера стоит за плечом игрока и смотрит вдоль его прицела — как в трансляциях. «Плечо выбирается само» — под каждое убийство то, с которого видна жертва (если игрок выглядывает из-за угла справа, камера за правым плечом смотрит в этот угол), смена плеча плавная. Снимается покадрово: каждые 5 секунд клипа — около полутора минут записи. HUD игрока нет, килфид — по флажку. Слоумо и вид глазами убитого с ней не сочетаются">Камера</label>
+        <select id="thirdperson">
+          <option value="first">из глаз игрока</option>
+          <option value="auto">3-е лицо, плечо выбирается само</option>
+          <option value="right">3-е лицо, за правым плечом</option>
+          <option value="left">3-е лицо, за левым плечом</option>
+        </select></div>
       <div><label for="frame" title="9:16 и 1:1 CS2 рендерит сразу в 1080×1920 или 1080×1080. В кадре свой набор для шортсов: прицел, килфид, здоровье с бронёй; флажки HUD и килфида на него не влияют. Квадрат — середина обычного кадра во всю высоту. Если прошлая задача была в другой форме кадра, игра перезапускается (~20 с)">Кадр</label>
         <select id="frame">
           <option value="landscape">16:9 — обычный</option>
@@ -787,7 +792,8 @@ async function cutRound(round, btn) {
         killfeed: $("show-killfeed").checked,
         vertical: $("frame").value === "vertical",
         square: $("frame").value === "square",
-        thirdperson: $("thirdperson").checked,
+        thirdperson: $("thirdperson").value !== "first",
+        thirdperson_side: $("thirdperson").value === "first" ? "auto" : $("thirdperson").value,
       }),
     });
     if (res.status === 402) {
@@ -936,7 +942,7 @@ syncVerticalHud();
 // Третье лицо рендер не сочетает со слоумо и видом жертвы (отвечает 422) —
 // гасим их здесь же, а HUD игрока у такой камеры нет вовсе.
 function syncThirdPerson() {
-  const tp = $("thirdperson").checked;
+  const tp = $("thirdperson").value !== "first";
   for (const id of ["slowmo", "victim-pov", "show-hud"]) {
     if (tp && id !== "show-hud") $(id).checked = false;
     const off = tp || (id === "show-hud" && $("frame").value !== "landscape");
