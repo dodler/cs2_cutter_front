@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CS2 Highlight Cutter</title>
+<title>RecoilSnap — CS2 Highlights</title>
+<!-- Логотип собирается в cs2_cutter/branding/build_logo.py, сюда копируются
+     готовые SVG: brand/logo.svg (полный, без фона), mark.svg (прицел),
+     wordmark.svg (надпись). -->
+<link rel="icon" type="image/svg+xml" href="brand/mark.svg">
 <style>
   :root {
     --bg: #0f1115; --panel: #171a21; --panel-2: #1e232c; --line: #2a303b;
@@ -20,6 +24,9 @@
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   }
   h1 { font-size: 19px; margin: 0; font-weight: 600; }
+  h1.brand { display: flex; align-items: center; gap: 4px; margin: -8px 0; }
+  h1.brand img { display: block; }
+  .login-logo { display: block; width: 100%; height: auto; margin: -8px 0 4px; }
   .env { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
   .dot.ok { background: var(--ok); } .dot.bad { background: var(--err); }
@@ -161,6 +168,7 @@
 </head>
 <body>
 <div id="login-screen" style="display:none; max-width:340px; margin:80px auto; padding:24px;" class="card">
+  <img class="login-logo" src="brand/logo.svg" alt="RecoilSnap — CS2 Highlights" width="820" height="600">
   <h2 style="margin-top:0">Вход</h2>
   <div style="display:grid; gap:10px">
     <button id="login-steam" class="steam-btn">Войти через Steam</button>
@@ -197,7 +205,7 @@
 
 <div id="app-root" style="display:none">
 <header>
-  <h1>🎬 CS2 Highlight Cutter</h1>
+  <h1 class="brand"><img src="brand/mark.svg" alt="" width="44" height="44"><img src="brand/wordmark.svg" alt="RecoilSnap" width="148" height="40"></h1>
   <div class="env">
     <span class="plan" id="plan" style="display:none"></span>
     <button id="buy" style="display:none; padding:5px 12px; font-size:13px; width:auto">Премиум</button>

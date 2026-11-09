@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="412 147 176 176" width="176" height="176">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGlow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#2a232b" />
+      <stop offset="60%" stop-color="#141419" />
+      <stop offset="100%" stop-color="#0c0d10" />
+    </radialGradient>
+
+    <!-- Metal Armor Gradients -->
+    <linearGradient id="metalPlateTop" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#d1d8e0" />
+      <stop offset="35%" stop-color="#8a95a5" />
+      <stop offset="70%" stop-color="#4b5361" />
+      <stop offset="100%" stop-color="#2a303c" />
+    </linearGradient>
+
+    <linearGradient id="metalPlateBottom" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9aa5b5" />
+      <stop offset="50%" stop-color="#5a6372" />
+      <stop offset="100%" stop-color="#252b36" />
+    </linearGradient>
+
+    <linearGradient id="innerOrangeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff9900" />
+      <stop offset="60%" stop-color="#ff4800" />
+      <stop offset="100%" stop-color="#991500" />
+    </linearGradient>
+
+    <!-- Bullet Gold Gradient -->
+    <linearGradient id="bulletGold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff1b0" />
+      <stop offset="30%" stop-color="#e8b948" />
+      <stop offset="70%" stop-color="#9e6e19" />
+      <stop offset="100%" stop-color="#472d04" />
+    </linearGradient>
+
+    <linearGradient id="bulletTip" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffde87" />
+      <stop offset="50%" stop-color="#d48a1c" />
+      <stop offset="100%" stop-color="#693b04" />
+    </linearGradient>
+
+    <!-- Flame Gradients -->
+    <linearGradient id="fireGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff2200" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#ff7b00" />
+      <stop offset="100%" stop-color="#ffee55" />
+    </linearGradient>
+
+    <linearGradient id="fireGrad2" x1="0%" y1="50%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff3c00" />
+      <stop offset="100%" stop-color="#ffbb00" />
+    </linearGradient>
+
+    <!-- Text Gradients -->
+    <linearGradient id="textMetalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="25%" stop-color="#d0d7de" />
+      <stop offset="50%" stop-color="#7a8799" />
+      <stop offset="52%" stop-color="#3d4452" />
+      <stop offset="80%" stop-color="#606b7d" />
+      <stop offset="100%" stop-color="#2b313d" />
+    </linearGradient>
+
+    <linearGradient id="orangeStrokeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff4400" />
+      <stop offset="50%" stop-color="#ffaa00" />
+      <stop offset="100%" stop-color="#ff4400" />
+    </linearGradient>
+
+    <!-- Drop Shadows / Glow Filters -->
+    <filter id="glowOrange" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="intenseFire" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="blur1" />
+      <feGaussianBlur stdDeviation="6" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur1" />
+        <feMergeNode in="blur2" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <g transform="translate(0, -10)">
+    <g id="crosshair-skull" transform="translate(500, 245)">
+      <!-- Outer Target Glow Rings -->
+      <circle cx="0" cy="0" r="68" fill="none" stroke="#ff4800" stroke-width="6" opacity="0.4" filter="url(#glowOrange)" />
+      <circle cx="0" cy="0" r="64" fill="#14181f" stroke="#ff7b00" stroke-width="5" />
+      <circle cx="0" cy="0" r="54" fill="none" stroke="#ffa200" stroke-width="2.5" stroke-dasharray="14 6" />
+
+      <!-- Target Axis Ticks (Crosshair elements) -->
+      <line x1="-80" y1="0" x2="-56" y2="0" stroke="#ffaa00" stroke-width="5" stroke-linecap="round" />
+      <line x1="56" y1="0" x2="80" y2="0" stroke="#ffaa00" stroke-width="5" stroke-linecap="round" />
+      <line x1="0" y1="-80" x2="0" y2="-56" stroke="#ffaa00" stroke-width="5" stroke-linecap="round" />
+      <line x1="0" y1="56" x2="0" y2="80" stroke="#ffaa00" stroke-width="5" stroke-linecap="round" />
+
+      <!-- Inner Skull Emblem -->
+      <!-- Cranium -->
+      <path d="M-26,-8 C-28,-30 28,-30 26,-8 C26,-1 22,7 15,11 L13,24 L-13,24 L-15,11 C-22,7 -26,-1 -26,-8 Z" fill="#e6ecf2" stroke="#111317" stroke-width="3.5" />
+      <!-- Forehead Headshot Hole (CS Killfeed Icon Detail) -->
+      <circle cx="0" cy="-14" r="5.5" fill="#0a0c0f" stroke="#ff3700" stroke-width="2" />
+      <path d="M-8,-14 L-4,-14 M8,-14 L4,-14 M0,-22 L0,-18 M0,-6 L0,-10" stroke="#ff6a00" stroke-width="1.5" />
+      <!-- Eye Sockets (Glowing Orange) -->
+      <path d="M-17,-3 C-17,-9 -8,-9 -8,-3 C-8,2 -13,3 -17,-3 Z" fill="#ff3300" stroke="#101216" stroke-width="1.5" />
+      <circle cx="-12" cy="-4" r="2" fill="#ffee66" />
+      <path d="M17,-3 C17,-9 8,-9 8,-3 C8,2 13,3 17,-3 Z" fill="#ff3300" stroke="#101216" stroke-width="1.5" />
+      <circle cx="12" cy="-4" r="2" fill="#ffee66" />
+      <!-- Nasal Cavity -->
+      <polygon points="0,3 -4,9 4,9" fill="#1b2028" />
+      <!-- Teeth / Jaw -->
+      <rect x="-10" y="16" width="4" height="7" rx="1" fill="#cbd4dc" stroke="#111317" stroke-width="1" />
+      <rect x="-4" y="16" width="3.5" height="7" rx="1" fill="#cbd4dc" stroke="#111317" stroke-width="1" />
+      <rect x="1" y="16" width="3.5" height="7" rx="1" fill="#cbd4dc" stroke="#111317" stroke-width="1" />
+      <rect x="6" y="16" width="4" height="7" rx="1" fill="#cbd4dc" stroke="#111317" stroke-width="1" />
+      <!-- Cheeks shading -->
+      <path d="M-22,-4 C-20,4 -15,8 -15,11" stroke="#8b98a8" stroke-width="2" fill="none" />
+      <path d="M22,-4 C20,4 15,8 15,11" stroke="#8b98a8" stroke-width="2" fill="none" />
+    </g>
+  </g>
+</svg>

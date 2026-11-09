@@ -47,6 +47,8 @@ SSE открыт к каждому хосту. Относительные `file_
 
 ```
 web/index.html        вся страница: разметка + CSS + JS в одном файле
+web/brand/            логотип RecoilSnap (SVG): logo, mark (favicon), wordmark (шапка);
+                      собирается в cs2_cutter/branding/build_logo.py, сюда — копия
 web/config.example.js образец конфига (в git)
 web/config.js         адрес бэкендов этой установки — НЕ в git, генерируется serve_ui.sh
 serve_ui.sh           генерирует config.js из env и поднимает http.server
