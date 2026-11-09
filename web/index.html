@@ -169,7 +169,10 @@
 <body>
 <div id="login-screen" style="display:none; max-width:340px; margin:80px auto; padding:24px;" class="card">
   <img class="login-logo" src="brand/logo.svg" alt="RecoilSnap — CS2 Highlights" width="820" height="600">
-  <h2 style="margin-top:0">Вход</h2>
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
+    <h2 style="margin:0">Вход</h2>
+    <button class="ghost lang-switch" style="padding:3px 10px; font-size:12px"></button>
+  </div>
   <div style="display:grid; gap:10px">
     <button id="login-steam" class="steam-btn">Войти через Steam</button>
     <p class="hint" style="margin:0">Бесплатно — 2 клипа в месяц с концовкой-логотипом, в премиуме — 100 и без неё.</p>
@@ -209,6 +212,7 @@
   <div class="env">
     <span class="plan" id="plan" style="display:none"></span>
     <button id="buy" style="display:none; padding:5px 12px; font-size:13px; width:auto">Премиум</button>
+    <button class="ghost lang-switch" style="padding:5px 10px; font-size:13px"></button>
     <button class="ghost" id="logout" style="padding:5px 12px; font-size:13px">Выйти</button>
   </div>
 </header>
@@ -387,6 +391,298 @@
 <script src="config.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
+
+// ---------- язык ----------
+// Два языка: русский и английский. Ключ перевода — сам русский текст:
+// разметка остаётся читаемой, а нехватка перевода видна сразу (строка
+// остаётся русской, страница не ломается).
+// Язык выбирается так: ?lang=ru|en (запоминается) → ранее выбранный в
+// переключателе → языки браузера (navigator.languages по порядку: русский
+// и языки, где русский обычно понятнее английского, → ru, английский → en)
+// → английский для всех остальных.
+const LANG_KEY = "cs2_lang";
+const LANGS = ["ru", "en"];
+const RU_FAMILY = new Set(["ru", "be", "kk", "ky", "tg", "uz"]);
+function detectLang(list) {
+  for (const tag of list || []) {
+    const base = String(tag).toLowerCase().split("-")[0];
+    if (RU_FAMILY.has(base)) return "ru";
+    if (base === "en") return "en";
+  }
+  return "en";
+}
+const LANG = (() => {
+  const q = new URLSearchParams(location.search).get("lang");
+  if (LANGS.includes(q)) {
+    try { localStorage.setItem(LANG_KEY, q); } catch {}
+    return q;
+  }
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (LANGS.includes(saved)) return saved;
+  } catch {}
+  return detectLang(navigator.languages && navigator.languages.length
+                    ? navigator.languages : [navigator.language]);
+})();
+const LOCALE = LANG === "ru" ? "ru-RU" : "en-GB";
+document.documentElement.lang = LANG;
+
+const EN = {
+  // вход и шапка
+  "Вход": "Sign in",
+  "Войти через Steam": "Sign in with Steam",
+  "Бесплатно — 2 клипа в месяц с концовкой-логотипом, в премиуме — 100 и без неё.":
+    "Free: 2 clips a month with a logo outro. Premium: 100, without it.",
+  "Вход администратора": "Admin sign-in",
+  "Логин": "Username",
+  "Пароль": "Password",
+  "Войти": "Sign in",
+  "Выйти": "Sign out",
+  "Премиум": "Premium",
+  "Закрыть": "Close",
+  "Сессия истекла, войдите снова": "Session expired, please sign in again",
+  // ошибки входа через Steam: приходят от библиотеки во фрагменте адреса
+  // после редиректов, поэтому переводятся здесь
+  "Вход через Steam отменён": "Steam sign-in was cancelled",
+  "Ответ Steam выдан для другого адреса": "The Steam response was issued for a different address",
+  "Ответ пришёл не от Steam": "The response didn't come from Steam",
+  "Steam не вернул идентификатор аккаунта": "Steam didn't return an account ID",
+  "Steam не подтвердил вход, попробуйте ещё раз": "Steam didn't confirm the sign-in, please try again",
+  "Ошибка входа": "Sign-in failed",
+  // вкладки
+  "Нарезка": "Cut",
+  "Редактирование": "Edit",
+  "Библиотека": "Library",
+  "Админ": "Admin",
+  // 1. демка
+  "1. Демка": "1. Demo",
+  "Из папки сервера": "From the server folder",
+  "Или загрузить .dem / .dem.zst / .dem.bz2": "Or upload .dem / .dem.zst / .dem.bz2",
+  "Разобрать демку": "Analyze demo",
+  "— нет демок —": "— no demos —",
+  "Загружаю {name}…": "Uploading {name}…",
+  "Готово: {name}": "Done: {name}",
+  "Ошибка загрузки: ": "Upload failed: ",
+  "Разбираю демку (может занять минуту)…": "Analyzing the demo (may take a minute)…",
+  "{rounds} раундов, игроков: {players}": "{rounds} rounds, {players} players",
+  "Не удалось разобрать демку": "Could not analyze the demo",
+  // 2. параметры
+  "2. Параметры нарезки": "2. Cut settings",
+  "Секунд до фрага": "Seconds before the kill",
+  "Секунд после": "Seconds after",
+  "Только хедшоты": "Headshots only",
+  "нет": "no",
+  "да": "yes",
+  "spec_show_xray: враги светятся сквозь стены. CS2 включает его по умолчанию, в хайлайтах обычно лишний":
+    "spec_show_xray: enemies glow through walls. CS2 turns it on by default; highlights usually look better without it",
+  "Рентген сквозь стены": "X-ray through walls",
+  "Каждое убийство замедляется прямо в игре (demo_timescale) — от секунды до него до полсекунды после, движение остаётся плавным. На замедленных отрезках звук ниже и глуше, с лёгким эхом. Клип получается длиннее игрового отрезка, и запись идёт дольше":
+    "Each kill is slowed down in-game (demo_timescale), from a second before it to half a second after; motion stays smooth. Slowed parts sound lower and muffled, with a light echo. The clip runs longer than the game segment and takes longer to record",
+  "Слоумо на фраге": "Slow-mo on kills",
+  "замедлять момент убийства": "slow down the kill",
+  "Здоровье, броня, патроны, деньги, радар": "Health, armor, ammo, money, radar",
+  "показывать HUD": "show HUD",
+  "Список убийств в правом верхнем углу": "Kill list in the top right corner",
+  "Килфид": "Killfeed",
+  "показывать килфид": "show killfeed",
+  "На момент каждого фрага — от секунды до него до полсекунды после, как у слоумо — камера переходит в глаза убитого, остальное время показывается глазами игрока. Без повторов, длина клипа не меняется":
+    "For each kill (from a second before to half a second after, as with slow-mo) the camera switches to the victim's eyes; the rest is shown from the player's view. No replays, the clip length stays the same",
+  "Вид из глаз убитого": "Victim's view",
+  "показывать фраг глазами жертвы": "show the kill through the victim's eyes",
+  "От третьего лица камера стоит за плечом игрока и смотрит вдоль его прицела — как в трансляциях. «Плечо выбирается само» — под каждое убийство то, с которого видна жертва (если игрок выглядывает из-за угла справа, камера за правым плечом смотрит в этот угол), смена плеча плавная. Снимается покадрово: каждые 5 секунд клипа — около полутора минут записи. HUD игрока нет, килфид — по флажку. Слоумо и вид глазами убитого с ней не сочетаются":
+    "In third person the camera sits behind the player's shoulder and looks along their aim, like in broadcasts. With “shoulder picked automatically” each kill gets the shoulder the victim is visible from (when the player peeks a corner on the right, a right-shoulder camera would stare into that corner); switches are smooth. Recorded frame by frame: every 5 seconds of clip take about a minute and a half. No player HUD; killfeed follows its checkbox. Can't be combined with slow-mo or victim's view",
+  "Камера": "Camera",
+  "из глаз игрока": "first person",
+  "3-е лицо, плечо выбирается само": "3rd person, shoulder picked automatically",
+  "3-е лицо, за правым плечом": "3rd person, over the right shoulder",
+  "3-е лицо, за левым плечом": "3rd person, over the left shoulder",
+  "9:16 и 1:1 CS2 рендерит сразу в 1080×1920 или 1080×1080. В кадре свой набор для шортсов: прицел, килфид, здоровье с бронёй; флажки HUD и килфида на него не влияют. Квадрат — середина обычного кадра во всю высоту. Если прошлая задача была в другой форме кадра, игра перезапускается (~20 с)":
+    "CS2 renders 9:16 and 1:1 natively at 1080×1920 or 1080×1080. These frames get their own shorts HUD: crosshair, killfeed, health and armor; the HUD and killfeed checkboxes don't affect it. Square is the middle of a regular frame at full height. If the previous job used a different frame shape, the game restarts (~20 s)",
+  "Кадр": "Frame",
+  "16:9 — обычный": "16:9 — standard",
+  "9:16 — шортсы (килфид, хп, броня, прицел)": "9:16 — shorts (killfeed, HP, armor, crosshair)",
+  "1:1 — квадрат (килфид, хп, броня, прицел)": "1:1 — square (killfeed, HP, armor, crosshair)",
+  "В кадре 9:16 и 1:1 набор HUD фиксирован": "9:16 and 1:1 frames use a fixed HUD",
+  // 3. игрок и раунды
+  "3. Игрок и раунды": "3. Player and rounds",
+  "Выберите игрока — ниже появятся его раунды. Один раунд — один хайлайт.":
+    "Pick a player to see their rounds below. One round, one highlight.",
+  "Ник": "Name",
+  "Киллы": "Kills",
+  "ХС": "HS",
+  "Раунды": "Rounds",
+  "Оружие": "Weapons",
+  "Рендер-хост не отдал раунды игрока — его нужно обновить.":
+    "The render host didn't return the player's rounds; it needs an update.",
+  ", в голову": ", headshot",
+  "Раунд {n}": "Round {n}",
+  "В задачах ✓": "Queued ✓",
+  "Нарезать": "Cut",
+  "Ставлю…": "Queuing…",
+  "{name}: раунды с киллами": "{name}: rounds with kills",
+  "У игрока нет киллов вне разминки.": "The player has no kills outside warmup.",
+  "Раунд {n} поставлен в очередь": "Round {n} queued",
+  "Ошибка: ": "Error: ",
+  // задачи
+  "Задачи": "Jobs",
+  "Задач пока нет.": "No jobs yet.",
+  "в библиотеке": "in library",
+  "Останавливаю…": "Stopping…",
+  "Остановить": "Stop",
+  "клип {i}/{n}": "clip {i}/{n}",
+  "Ещё {n} клип(ов) не записано — закончился лимит тарифа.": "{n} more clip(s) not recorded: plan limit reached.",
+  "Скачать все (ZIP)": "Download all (ZIP)",
+  "Остановить задачу {name}? Уже записанные клипы останутся.":
+    "Stop the job for {name}? Clips already recorded will be kept.",
+  "Не удалось остановить задачу: ": "Could not stop the job: ",
+  "МБ": "MB",
+  // редактирование
+  "Вертикальный формат 1080×1920 для шортсов и рилсов. Исходный клип остаётся на месте, версия собирается рядом. При обрезке HUD и килфид уходят за края — чтобы они были в кадре, включите «Вертикально 9:16» при записи хайлайтов.":
+    "Vertical 1080×1920 for Shorts and Reels. The original clip stays as is; the new version is built next to it. Cropping pushes the HUD and killfeed past the edges. To keep them in frame, record highlights in 9:16.",
+  "Клип": "Clip",
+  "Формат": "Format",
+  "9:16 — размыть сверху и снизу": "9:16 — blur top and bottom",
+  "9:16 — обрезать по краям": "9:16 — crop the sides",
+  "Собрать вертикальный": "Build vertical",
+  " · из библиотеки": " · from library",
+  "— клипов пока нет —": "— no clips yet —",
+  "Собираю…": "Building…",
+  "обрезка по краям": "cropped sides",
+  "размытие сверху и снизу": "blurred top and bottom",
+  "скачать": "download",
+  "Готово, фрагмент в библиотеке": "Done, the clip is in the library",
+  "Готово": "Done",
+  // библиотека
+  "Библиотека фрагментов": "Clip library",
+  "Перетащите сюда свои клипы": "Drop your clips here",
+  "или нажмите, чтобы выбрать": "or click to choose",
+  "Все": "All",
+  "Из демок": "From demos",
+  "Свои": "Uploaded",
+  "Поиск по названию или тегу": "Search by title or tag",
+  "Библиотека пуста.": "The library is empty.",
+  "Библиотека недоступна: {addr}": "Library unavailable: {addr}",
+  "Под фильтр ничего не подошло.": "Nothing matches the filter.",
+  "{count} шт · {mins} мин · {mb} МБ": "{count} clips · {mins} min · {mb} MB",
+  "{ext} · до {mb} МБ": "{ext} · up to {mb} MB",
+  "без превью": "no preview",
+  "демка": "demo",
+  "своё": "uploaded",
+  "Переименовать": "Rename",
+  "Удалить": "Delete",
+  "Название фрагмента": "Clip title",
+  "Удалить «{title}»? Файл будет стёрт с диска.": "Delete “{title}”? The file will be erased from disk.",
+  "Скачать": "Download",
+  "сеть недоступна": "network unavailable",
+  "готово": "done",
+  // тариф
+  "Бесплатно": "Free",
+  "{plan} · {left} из {limit} до {until}": "{plan} · {left} of {limit} until {until}",
+  "Продлить": "Extend",
+  "100 клипов за период вместо 2 в месяц, без концовки с логотипом.":
+    "100 clips per period instead of 2 a month, no logo outro.",
+  "Оплата пока не подключена": "Payments are not set up yet",
+  "Премиум оплачен до {date}. Оплата за 30 дней добавится после этой даты.":
+    "Premium is paid until {date}. A 30-day payment will start after that date.",
+  "Подписка уже действует.": "Your subscription is already active.",
+  "Не удалось начать оплату: ": "Could not start the payment: ",
+  "Paddle.js не загрузился": "Paddle.js failed to load",
+  "проверяю оплату…": "checking payment…",
+  "Оплата ещё не подтвердилась. Если деньги списаны, премиум включится в течение нескольких минут.":
+    "The payment hasn't been confirmed yet. If you were charged, Premium will turn on within a few minutes.",
+  // админка
+  "Сервисы": "Services",
+  "Сервис": "Service",
+  "Адрес": "Address",
+  "Состояние": "Status",
+  "Рендер-хосты": "Render hosts",
+  "Машины с CS2 (cs2_cutter), между которыми раскидываются задачи: новая демка уходит на готовый хост с самой короткой очередью, задачи по ней — туда же. На хосте CS2_JWT_SECRET должен совпадать с библиотекой, CS2_LIBRARY_URL — указывать на неё, а в CS2_CORS_ORIGINS — быть адрес этого UI.":
+    "Machines running CS2 (cs2_cutter) that share the jobs: a new demo goes to a ready host with the shortest queue, and its jobs follow it there. On each host CS2_JWT_SECRET must match the library, CS2_LIBRARY_URL must point to it, and CS2_CORS_ORIGINS must include this UI's address.",
+  "Имя": "Name",
+  "Очередь": "Queue",
+  "Вкл.": "On",
+  "Адрес хоста": "Host address",
+  "Имя (необязательно)": "Name (optional)",
+  "Добавить хост": "Add host",
+  "недоступен": "unreachable",
+  "CS2 готова": "CS2 ready",
+  "не готов": "not ready",
+  "рабочий стол (OBS)": "desktop (OBS)",
+  "headless {res} · CS2 готова": "headless {res} · CS2 ready",
+  "выключен": "disabled",
+  "Библиотека и авторизация": "Library and auth",
+  "ошибка: ": "error: ",
+  "работает": "running",
+  "Рендер по умолчанию (config.js)": "Default render host (config.js)",
+  "не используется: есть включённые хосты": "not used: there are enabled hosts",
+  "Перезапустить CS2": "Restart CS2",
+  "Список хостов не загрузился: {err}": "Host list failed to load: {err}",
+  "Включённых хостов нет — задачи идут на адрес из config.js: {addr}":
+    "No enabled hosts: jobs go to the config.js address: {addr}",
+  "Хост добавлен": "Host added",
+  "Хост добавлен, но не отвечает: проверьте адрес, порт и CORS на хосте":
+    "Host added but not responding: check the address, port and CORS on the host",
+  "Перезапустить CS2 на {url}? Текущая запись на нём оборвётся.":
+    "Restart CS2 on {url}? The recording running there will be cut off.",
+  "перезапускаю…": "restarting…",
+  "Убрать хост {url} из списка? Его задачи и демки пропадут из интерфейса.":
+    "Remove host {url} from the list? Its jobs and demos will disappear from the UI.",
+};
+
+// t("Раунд {n}", { n: 3 }) — перевод с подстановкой.
+function t(s, vars) {
+  let out = LANG === "en" && s in EN ? EN[s] : s;
+  if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+  return out;
+}
+
+// Статичная разметка переводится одним проходом: текстовые узлы и атрибуты
+// title/placeholder/alt, ключ — текст со схлопнутыми пробелами.
+function translateDom(root) {
+  if (LANG === "ru") return;
+  const norm = (s) => s.replace(/\s+/g, " ").trim();
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const tag = n.parentNode && n.parentNode.nodeName;
+    if (tag === "SCRIPT" || tag === "STYLE") continue;
+    const key = norm(n.nodeValue);
+    if (key && key in EN) {
+      const lead = /^\s/.test(n.nodeValue) ? " " : "", tail = /\s$/.test(n.nodeValue) ? " " : "";
+      n.nodeValue = lead + EN[key] + tail;
+    }
+  }
+  for (const el of root.querySelectorAll("[title], [placeholder], [alt]")) {
+    for (const a of ["title", "placeholder", "alt"]) {
+      const v = el.getAttribute(a);
+      if (v && norm(v) in EN) el.setAttribute(a, EN[norm(v)]);
+    }
+  }
+}
+
+// Ошибки и шаги задач бэкенды переводят сами (их app/i18n.py): язык им
+// сообщает Accept-Language в каждом запросе (authFetch, вход, health,
+// заливка), а EventSource и прочие адреса без заголовков — ?lang= (withLang).
+const withLang = (url) => url + (url.includes("?") ? "&" : "?") + "lang=" + LANG;
+
+// Переключатель: другой язык — перезагрузка страницы, так проще, чем
+// перерисовывать уже построенные карточки.
+for (const b of document.querySelectorAll(".lang-switch")) {
+  const other = LANG === "ru" ? "en" : "ru";
+  b.textContent = other.toUpperCase();
+  b.title = other === "en" ? "Switch to English" : "Переключить на русский";
+  b.onclick = () => {
+    try { localStorage.setItem(LANG_KEY, other); } catch {}
+    const url = new URL(location.href);
+    if (url.searchParams.has("lang")) {
+      url.searchParams.delete("lang");
+      location.href = url.toString();
+    } else {
+      location.reload();
+    }
+  };
+}
+translateDom(document.body);
+
 const state = { demoId: null, demoHost: null, demos: [], player: null, queuedRounds: new Set(), jobs: new Map(),
                 editClips: [], role: null, billing: null, es: [] };
 // Запущено ли приложение и его таймеры: выход всё это сбрасывает, иначе
@@ -480,7 +776,7 @@ async function loadHosts() {
 
 async function hostHealth(host) {
   try {
-    const res = await fetch(host + "/api/health", { signal: AbortSignal.timeout(4000) });
+    const res = await fetch(host + "/api/health", { signal: AbortSignal.timeout(4000), headers: { "Accept-Language": LANG } });
     return await res.json();
   } catch {
     return null;
@@ -511,12 +807,12 @@ const clearToken = () => { try { localStorage.removeItem(TOKEN_KEY); } catch {} 
 
 async function authFetch(url, opts = {}) {
   const token = getToken();
-  const headers = { ...(opts.headers || {}) };
+  const headers = { "Accept-Language": LANG, ...(opts.headers || {}) };
   if (token) headers["Authorization"] = "Bearer " + token;
   const res = await fetch(url, { ...opts, headers });
   if (res.status === 401) {
     clearToken();
-    showLogin("Сессия истекла, войдите снова");
+    showLogin(t("Сессия истекла, войдите снова"));
     throw new Error("не авторизован");
   }
   return res;
@@ -538,7 +834,7 @@ function showLogin(message) {
   state.jobs.clear();
   state.editClips = [];
   libState.items = [];
-  const blank = { jobs: "<p class='empty'>Задач пока нет.</p>", frags: "", "edit-result": "" };
+  const blank = { jobs: `<p class='empty'>${t("Задач пока нет.")}</p>`, frags: "", "edit-result": "" };
   for (const [id, html] of Object.entries(blank)) {
     const el = $(id);
     if (el) el.innerHTML = html;
@@ -560,10 +856,10 @@ $("login-submit").onclick = async () => {
     // Авторизация живёт вместе с библиотекой, а не на рендер-хосте.
     const res = await fetch(lib("/api/auth/login"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Accept-Language": LANG },
       body: JSON.stringify({ username, password }),
     });
-    if (!res.ok) throw new Error((await res.json()).detail || "Ошибка входа");
+    if (!res.ok) throw new Error((await res.json()).detail || t("Ошибка входа"));
     const { access_token } = await res.json();
     setToken(access_token);
     $("login-pass").value = "";
@@ -636,7 +932,7 @@ async function loadDemos(select) {
   const sel = $("demo");
   sel.innerHTML = state.demos.length
     ? state.demos.map(({ d }, i) => `<option value="${i}" title="${esc(d.filename)}">${esc(demoLabel(d))}</option>`).join("")
-    : "<option value=''>— нет демок —</option>";
+    : `<option value=''>${t("— нет демок —")}</option>`;
   if (select) {
     const i = state.demos.findIndex((x) => x.host === select.host && x.d.id === select.id);
     if (i >= 0) sel.value = String(i);
@@ -649,9 +945,9 @@ async function loadDemos(select) {
 function demoLabel(d) {
   const parts = [];
   if (d.map) parts.push(prettyMap(d.map));
-  if (d.played_at) parts.push(new Date(d.played_at * 1000).toLocaleDateString("ru-RU"));
+  if (d.played_at) parts.push(new Date(d.played_at * 1000).toLocaleDateString(LOCALE));
   if (Array.isArray(d.score)) parts.push(`${+d.score[0]}:${+d.score[1]}`);
-  return d.map ? parts.join(" · ") : `${d.filename} (${d.size_mb} МБ)`;
+  return d.map ? parts.join(" · ") : `${d.filename} (${d.size_mb} ${t("МБ")})`;
 }
 
 function jobDemoLabel(j) {
@@ -667,7 +963,7 @@ function prettyMap(m) {
 $("upload").onchange = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  $("demo-hint").textContent = `Загружаю ${file.name}…`;
+  $("demo-hint").textContent = t("Загружаю {name}…", { name: file.name });
   const fd = new FormData();
   fd.append("file", file);
   try {
@@ -677,9 +973,9 @@ $("upload").onchange = async (e) => {
     const info = await res.json();
     await loadDemos({ host, id: info.id });
     showPlayers(info, host);
-    $("demo-hint").textContent = `Готово: ${info.filename}`;
+    $("demo-hint").textContent = t("Готово: {name}", { name: info.filename });
   } catch (err) {
-    $("demo-hint").textContent = "Ошибка загрузки: " + err.message;
+    $("demo-hint").textContent = t("Ошибка загрузки: ") + err.message;
   }
 };
 
@@ -687,14 +983,14 @@ $("analyze").onclick = async () => {
   const item = state.demos[$("demo").value];
   if (!item) return;
   $("analyze").disabled = true;
-  $("demo-hint").textContent = "Разбираю демку (может занять минуту)…";
+  $("demo-hint").textContent = t("Разбираю демку (может занять минуту)…");
   try {
     const url = `${item.host}/api/demo/${encodeURIComponent(item.d.id)}/players`;
     const info = await (await authFetch(url)).json();
     showPlayers(info, item.host);
-    $("demo-hint").textContent = `${info.total_rounds} раундов, игроков: ${info.players.length}`;
+    $("demo-hint").textContent = t("{rounds} раундов, игроков: {players}", { rounds: info.total_rounds, players: info.players.length });
   } catch (err) {
-    $("demo-hint").textContent = "Не удалось разобрать демку";
+    $("demo-hint").textContent = t("Не удалось разобрать демку");
   }
   $("analyze").disabled = false;
 };
@@ -735,7 +1031,7 @@ function showRounds(p) {
   panel.style.display = "block";
   if (!Array.isArray(p.rounds)) {
     // Рендер-хост старой версии не отдаёт раунды — честно говорим об этом.
-    panel.innerHTML = `<p class="err">Рендер-хост не отдал раунды игрока — его нужно обновить.</p>`;
+    panel.innerHTML = `<p class="err">${t("Рендер-хост не отдал раунды игрока — его нужно обновить.")}</p>`;
     return;
   }
   const rows = p.rounds.map((r) => {
@@ -743,27 +1039,30 @@ function showRounds(p) {
     const hs = r.kills.filter((k) => k.headshot).length;
     const mk = MULTI[Math.min(n, 5)];
     const kills = r.kills.map((k) =>
-      `<span class="kill" title="${esc(k.weapon)} → ${esc(k.victim)}${k.headshot ? ", в голову" : ""}">`
+      `<span class="kill" title="${esc(k.weapon)} → ${esc(k.victim)}${k.headshot ? t(", в голову") : ""}">`
       + `<span class="w">${esc(k.weapon)}</span> ${esc(k.victim)}${k.headshot ? '<span class="hs">HS</span>' : ""}</span>`
     ).join("");
     const queued = state.queuedRounds.has(r.round);
     return `
       <div class="round${n >= 3 ? " big" : ""}">
-        <div class="round-num">Раунд ${+r.round}
-          <small>${n} ${plural(n, "килл", "килла", "киллов")}${mk ? ` · <span class="mk">${mk}</span>` : ""}${hs ? ` · ${hs} HS` : ""}</small></div>
+        <div class="round-num">${t("Раунд {n}", { n: +r.round })}
+          <small>${n} ${plural(n, ["килл", "килла", "киллов"], ["kill", "kills"])}${mk ? ` · <span class="mk">${mk}</span>` : ""}${hs ? ` · ${hs} HS` : ""}</small></div>
         <div class="kills">${kills}</div>
-        <button data-round="${+r.round}" class="${queued ? "done" : ""}"${queued ? " disabled" : ""}>${queued ? "В задачах ✓" : "Нарезать"}</button>
+        <button data-round="${+r.round}" class="${queued ? "done" : ""}"${queued ? " disabled" : ""}>${queued ? t("В задачах ✓") : t("Нарезать")}</button>
       </div>`;
   }).join("");
   panel.innerHTML = `
     <div class="rounds">
-      <div class="rounds-head"><h3>${esc(p.name)}: раунды с киллами</h3>
-        <span class="hint" id="rounds-hint">${p.rounds.length} ${plural(p.rounds.length, "раунд", "раунда", "раундов")}</span></div>
-      ${rows || '<p class="empty">У игрока нет киллов вне разминки.</p>'}
+      <div class="rounds-head"><h3>${esc(t("{name}: раунды с киллами", { name: p.name }))}</h3>
+        <span class="hint" id="rounds-hint">${p.rounds.length} ${plural(p.rounds.length, ["раунд", "раунда", "раундов"], ["round", "rounds"])}</span></div>
+      ${rows || `<p class="empty">${t("У игрока нет киллов вне разминки.")}</p>`}
     </div>`;
 }
 
-function plural(n, one, few, many) {
+// plural(n, ["килл", "килла", "киллов"], ["kill", "kills"])
+function plural(n, ru, en) {
+  if (LANG === "en") return n === 1 ? en[0] : en[1];
+  const [one, few, many] = ru;
   const m10 = n % 10, m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return one;
   if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
@@ -780,7 +1079,7 @@ async function cutRound(round, btn) {
   if (!state.demoId || !state.player) return;
   const hint = $("rounds-hint");
   btn.disabled = true;
-  btn.textContent = "Ставлю…";
+  btn.textContent = t("Ставлю…");
   try {
     const host = state.demoHost;
     const res = await authFetch(host + "/api/jobs", {
@@ -808,19 +1107,19 @@ async function cutRound(round, btn) {
       hint.textContent = (await res.json()).detail;
       openBilling();
       btn.disabled = false;
-      btn.textContent = "Нарезать";
+      btn.textContent = t("Нарезать");
       return;
     }
     if (!res.ok) throw new Error((await res.json()).detail);
     renderJob({ ...(await res.json()), _host: host });
     state.queuedRounds.add(round);
     btn.classList.add("done");
-    btn.textContent = "В задачах ✓";
-    hint.textContent = `Раунд ${round} поставлен в очередь`;
+    btn.textContent = t("В задачах ✓");
+    hint.textContent = t("Раунд {n} поставлен в очередь", { n: round });
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = "Нарезать";
-    hint.textContent = "Ошибка: " + err.message;
+    btn.textContent = t("Нарезать");
+    hint.textContent = t("Ошибка: ") + err.message;
   }
 }
 
@@ -829,7 +1128,7 @@ function renderJob(job) {
   const container = $("jobs");
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
   container.innerHTML = sorted.map(jobHtml).join("") ||
-    "<p class='empty'>Задач пока нет.</p>";
+    `<p class='empty'>${t("Задач пока нет.")}</p>`;
 }
 
 function jobHtml(j) {
@@ -846,9 +1145,9 @@ function jobHtml(j) {
     return `
     <div class="clip">
       <video controls preload="metadata" src="${esc(src)}"></video>
-      <div><b>Раунд ${c.round_num}</b> · ${c.kills_count}k · ${c.duration_sec}s · ${c.size_mb} МБ</div>
+      <div><b>${t("Раунд {n}", { n: c.round_num })}</b> · ${c.kills_count}k · ${c.duration_sec}s · ${c.size_mb} ${t("МБ")}</div>
       <div><a href="${esc(src)}" download target="_blank" rel="noopener">${esc(c.filename)}</a>
-        ${inLib ? '<span class="badge demo" style="margin-left:6px">в библиотеке</span>' : ""}</div>
+        ${inLib ? `<span class="badge demo" style="margin-left:6px">${t("в библиотеке")}</span>` : ""}</div>
     </div>`;
   }).join("");
   return `
@@ -857,16 +1156,16 @@ function jobHtml(j) {
         <div><b>${esc(j.player_name)}</b> <span class="hint" title="${esc(j.demo_id)}">· ${esc(jobDemoLabel(j))}</span></div>
         <span>
           ${j.status === "pending" || j.status === "processing"
-            ? `<button class="ghost" data-act="cancel" data-key="${esc(jobKey(j))}"${j._stopping ? " disabled" : ""}>${j._stopping ? "Останавливаю…" : "Остановить"}</button>` : ""}
+            ? `<button class="ghost" data-act="cancel" data-key="${esc(jobKey(j))}"${j._stopping ? " disabled" : ""}>${j._stopping ? t("Останавливаю…") : t("Остановить")}</button>` : ""}
           <span class="badge ${esc(j.status)}">${esc(j.status)}</span>
         </span>
       </div>
       <div class="bar"><i style="width:${j.progress_percent}%"></i></div>
-      <div class="hint">${esc(j.current_step || "")}${j.total_clips ? ` · клип ${j.current_clip_index}/${j.total_clips}` : ""}</div>
+      <div class="hint">${esc(j.current_step || "")}${j.total_clips ? ` · ${t("клип {i}/{n}", { i: j.current_clip_index, n: j.total_clips })}` : ""}</div>
       ${j.error_message ? `<div class="err">${esc(j.error_message)}</div>` : ""}
-      ${j.quota_limited ? `<div class="upsell"><span class="hint">Ещё ${+j.quota_limited} клип(ов) не записано — закончился лимит тарифа.</span>
-        <button data-act="buy">Премиум</button></div>` : ""}
-      ${j.zip_url ? `<div class="actions"><a href="${esc(hostAuth(j._host, j.zip_url))}" download target="_blank" rel="noopener"><button>Скачать все (ZIP)</button></a></div>` : ""}
+      ${j.quota_limited ? `<div class="upsell"><span class="hint">${t("Ещё {n} клип(ов) не записано — закончился лимит тарифа.", { n: +j.quota_limited })}</span>
+        <button data-act="buy">${t("Премиум")}</button></div>` : ""}
+      ${j.zip_url ? `<div class="actions"><a href="${esc(hostAuth(j._host, j.zip_url))}" download target="_blank" rel="noopener"><button>${t("Скачать все (ZIP)")}</button></a></div>` : ""}
       <div class="clips">${clips}</div>
     </div>`;
 }
@@ -880,7 +1179,7 @@ function stopEvents() {
 function startEvents() {
   stopEvents();
   for (const host of hosts.list) {
-    const es = new EventSource(hostAuth(host, "/api/events"));
+    const es = new EventSource(withLang(hostAuth(host, "/api/events")));
     state.es.push(es);
     es.addEventListener("initial", (e) => {
       for (const j of JSON.parse(e.data)) state.jobs.set(jobKey({ ...j, _host: host }), { ...j, _host: host });
@@ -917,7 +1216,7 @@ $("jobs").addEventListener("click", (e) => {
 async function cancelJob(key) {
   const j = state.jobs.get(key);
   if (!j) return;
-  if (!confirm(`Остановить задачу ${j.player_name}? Уже записанные клипы останутся.`)) return;
+  if (!confirm(t("Остановить задачу {name}? Уже записанные клипы останутся.", { name: j.player_name }))) return;
   j._stopping = true;
   renderJob0();
   try {
@@ -929,7 +1228,7 @@ async function cancelJob(key) {
     state.jobs.set(key, upd);
   } catch (err) {
     j._stopping = false;
-    alert("Не удалось остановить задачу: " + err.message);
+    alert(t("Не удалось остановить задачу: ") + err.message);
   }
   renderJob0();
 }
@@ -941,7 +1240,7 @@ function syncVerticalHud() {
   for (const id of ["show-hud", "show-killfeed"]) {
     $(id).disabled = v;
     $(id).closest("div").style.opacity = v ? 0.45 : "";
-    $(id).closest("div").title = v ? "В кадре 9:16 и 1:1 набор HUD фиксирован" : "";
+    $(id).closest("div").title = v ? t("В кадре 9:16 и 1:1 набор HUD фиксирован") : "";
   }
 }
 $("frame").addEventListener("change", syncVerticalHud);
@@ -964,7 +1263,7 @@ syncThirdPerson();
 
 function renderJob0() {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
-  $("jobs").innerHTML = sorted.map(jobHtml).join("") || "<p class='empty'>Задач пока нет.</p>";
+  $("jobs").innerHTML = sorted.map(jobHtml).join("") || `<p class='empty'>${t("Задач пока нет.")}</p>`;
   refreshEditClips();
 }
 
@@ -987,13 +1286,13 @@ function refreshEditClips() {
       if (!body) continue;
       items.push({ body, host: j._host,
                    label: `${j.player_name} · ${c.filename} · ${c.duration_sec}s`
-                          + (c.library_id ? " · из библиотеки" : "") });
+                          + (c.library_id ? t(" · из библиотеки") : "") });
     }
   }
   state.editClips = items;
   sel.innerHTML = items.length
     ? items.map((it, i) => `<option value="${i}">${esc(it.label)}</option>`).join("")
-    : "<option value=''>— клипов пока нет —</option>";
+    : `<option value=''>${t("— клипов пока нет —")}</option>`;
   if (prev && items[prev]) sel.value = prev;
 }
 
@@ -1002,10 +1301,10 @@ $("edit-run").onclick = async () => {
   if (!it) return;
   const mode = $("edit-mode").value;
   $("edit-run").disabled = true;
-  $("edit-hint").textContent = "Собираю…";
+  $("edit-hint").textContent = t("Собираю…");
   try {
     const res = await fetch(hostAuth(it.host, "/api/vertical"), {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json", "Accept-Language": LANG },
       body: JSON.stringify({ mode, ...it.body }) });
     if (!res.ok) throw new Error(((await res.json()).detail) || res.status);
     const v = await res.json();
@@ -1013,14 +1312,14 @@ $("edit-run").onclick = async () => {
     $("edit-result").innerHTML = `
       <div class="clip">
         <video controls preload="metadata" src="${esc(src)}" style="max-height:70vh"></video>
-        <div><b>1080×1920</b> · ${esc(v.mode === "crop" ? "обрезка по краям" : "размытие сверху и снизу")}
-          ${v.in_library ? '<span class="badge demo" style="margin-left:6px">в библиотеке</span>' : ""}</div>
-        <div><a href="${esc(src)}" download target="_blank" rel="noopener">скачать</a></div>
+        <div><b>1080×1920</b> · ${esc(v.mode === "crop" ? t("обрезка по краям") : t("размытие сверху и снизу"))}
+          ${v.in_library ? `<span class="badge demo" style="margin-left:6px">${t("в библиотеке")}</span>` : ""}</div>
+        <div><a href="${esc(src)}" download target="_blank" rel="noopener">${t("скачать")}</a></div>
       </div>`;
-    $("edit-hint").textContent = v.in_library ? "Готово, фрагмент в библиотеке" : "Готово";
+    $("edit-hint").textContent = v.in_library ? t("Готово, фрагмент в библиотеке") : t("Готово");
     if (typeof loadLibrary === "function") loadLibrary();
   } catch (err) {
-    $("edit-hint").textContent = "Ошибка: " + err.message;
+    $("edit-hint").textContent = t("Ошибка: ") + err.message;
   }
   $("edit-run").disabled = false;
 };
@@ -1052,7 +1351,7 @@ async function loadLibrary() {
   } catch (err) {
     $("frags").innerHTML = "";
     $("frags-empty").style.display = "block";
-    $("frags-empty").textContent = `Библиотека недоступна: ${LIB_LABEL}`;
+    $("frags-empty").textContent = t("Библиотека недоступна: {addr}", { addr: LIB_LABEL });
   }
 }
 
@@ -1062,24 +1361,24 @@ function renderLibrary(stats) {
   const empty = $("frags-empty");
   empty.style.display = libState.items.length ? "none" : "block";
   empty.textContent = (libState.source || libState.query)
-    ? "Под фильтр ничего не подошло." : "Библиотека пуста.";
+    ? t("Под фильтр ничего не подошло.") : t("Библиотека пуста.");
 
   if (stats) {
     const mins = Math.round((stats.total_duration_sec || 0) / 60);
     $("frag-stats").textContent = stats.count
-      ? `${stats.count} шт · ${mins} мин · ${Math.round(stats.total_size_mb)} МБ`
+      ? t("{count} шт · {mins} мин · {mb} МБ", { count: stats.count, mins, mb: Math.round(stats.total_size_mb) })
       : "";
   }
   if (libState.limits) {
     $("frag-limits").textContent =
-      `${libState.limits.allowed_ext.join(" ")} · до ${libState.limits.max_upload_mb} МБ`;
+      t("{ext} · до {mb} МБ", { ext: libState.limits.allowed_ext.join(" "), mb: libState.limits.max_upload_mb });
   }
 }
 
 function fragHtml(f) {
   const thumb = f.thumb_url
     ? `<img src="${esc(libAuth(f.thumb_url))}" alt="" loading="lazy">`
-    : `<span class="noimg">без превью</span>`;
+    : `<span class="noimg">${t("без превью")}</span>`;
   const res = f.width ? `${f.width}×${f.height}` : "?";
   const origin = f.origin && f.origin.player_name ? esc(f.origin.player_name) : null;
   return `
@@ -1088,13 +1387,13 @@ function fragHtml(f) {
       <div class="frag-body">
         <div class="frag-title">${esc(f.title)}</div>
         <div class="frag-meta">
-          <span class="badge ${f.source === "demo" ? "demo" : "upload"}">${f.source === "demo" ? "демка" : "своё"}</span>
-          <span>${res}</span><span>${Math.round(f.fps || 0)} fps</span><span>${f.size_mb} МБ</span>
+          <span class="badge ${f.source === "demo" ? "demo" : "upload"}">${f.source === "demo" ? t("демка") : t("своё")}</span>
+          <span>${res}</span><span>${Math.round(f.fps || 0)} fps</span><span>${f.size_mb} ${t("МБ")}</span>
           ${origin ? `<span>· ${origin}</span>` : ""}
         </div>
         <div class="frag-acts">
-          <button class="ghost" data-act="rename">Переименовать</button>
-          <button class="ghost" data-act="delete">Удалить</button>
+          <button class="ghost" data-act="rename">${t("Переименовать")}</button>
+          <button class="ghost" data-act="delete">${t("Удалить")}</button>
         </div>
       </div>
     </div>`;
@@ -1113,7 +1412,7 @@ $("frags").onclick = async (e) => {
   if (btn.dataset.act === "play") return openPreview(frag);
 
   if (btn.dataset.act === "rename") {
-    const title = prompt("Название фрагмента", frag.title);
+    const title = prompt(t("Название фрагмента"), frag.title);
     if (title === null || title === frag.title) return;
     await authFetch(lib(`/api/library/${encodeURIComponent(id)}`), {
       method: "PATCH",
@@ -1124,7 +1423,7 @@ $("frags").onclick = async (e) => {
   }
 
   if (btn.dataset.act === "delete") {
-    if (!confirm(`Удалить «${frag.title}»? Файл будет стёрт с диска.`)) return;
+    if (!confirm(t("Удалить «{title}»? Файл будет стёрт с диска.", { title: frag.title }))) return;
     await authFetch(lib(`/api/library/${encodeURIComponent(id)}`), { method: "DELETE" });
     return loadLibrary();
   }
@@ -1139,8 +1438,8 @@ function openPreview(frag) {
       <div class="actions">
         <span class="hint">${esc(frag.title)}</span>
         <a href="${esc(libAuth(frag.file_url))}" download target="_blank" rel="noopener"
-           style="margin-left:auto"><button class="ghost">Скачать</button></a>
-        <button class="ghost" data-close>Закрыть</button>
+           style="margin-left:auto"><button class="ghost">${t("Скачать")}</button></a>
+        <button class="ghost" data-close>${t("Закрыть")}</button>
       </div>
     </div>`;
   const close = () => { box.remove(); document.removeEventListener("keydown", onKey); };
@@ -1160,6 +1459,7 @@ function uploadFragment(file, onProgress) {
     fd.append("file", file);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", lib("/api/library/upload"));
+    xhr.setRequestHeader("Accept-Language", LANG);
     const token = getToken();
     if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
     xhr.upload.onprogress = (e) => {
@@ -1168,7 +1468,7 @@ function uploadFragment(file, onProgress) {
     xhr.onload = () => {
       if (xhr.status === 401) {
         clearToken();
-        showLogin("Сессия истекла, войдите снова");
+        showLogin(t("Сессия истекла, войдите снова"));
         return reject(new Error("не авторизован"));
       }
       if (xhr.status !== 200) {
@@ -1178,7 +1478,7 @@ function uploadFragment(file, onProgress) {
       }
       resolve(JSON.parse(xhr.responseText));
     };
-    xhr.onerror = () => reject(new Error("сеть недоступна"));
+    xhr.onerror = () => reject(new Error(t("сеть недоступна")));
     xhr.send(fd);
   });
 }
@@ -1197,7 +1497,7 @@ async function handleFiles(files) {
     const bar = row.querySelector("i"), pct = row.querySelector(".up-pct");
     try {
       await uploadFragment(file, (p) => { bar.style.width = p + "%"; pct.textContent = p + "%"; });
-      pct.textContent = "готово";
+      pct.textContent = t("готово");
       setTimeout(() => row.remove(), 2000);
       await loadLibrary();
     } catch (err) {
@@ -1269,14 +1569,15 @@ function renderPlan(b) {
     buy.style.display = "none";
     return;
   }
-  const until = new Date(b.period_end * 1000).toLocaleDateString();
-  el.textContent = `${b.plan === "pro" ? "Премиум" : "Бесплатно"} · ${b.remaining} из ${b.limit} до ${until}`;
+  const until = new Date(b.period_end * 1000).toLocaleDateString(LOCALE);
+  el.textContent = t("{plan} · {left} из {limit} до {until}", {
+    plan: b.plan === "pro" ? t("Премиум") : t("Бесплатно"), left: b.remaining, limit: b.limit, until });
   el.className = "plan" + (b.plan === "pro" ? " pro" : "") + (b.remaining ? "" : " empty");
   el.title = b.name ? `Steam: ${b.name}` : b.user_id;
   el.style.display = "";
   // Подписку Paddle не продаём поверх действующей, а ЮKassa продлевает:
   // её период встаёт после уже оплаченного.
-  buy.textContent = b.plan === "pro" ? "Продлить" : "Премиум";
+  buy.textContent = b.plan === "pro" ? t("Продлить") : t("Премиум");
   buy.style.display = (b.providers || []).length ? "" : "none";
 }
 
@@ -1284,18 +1585,19 @@ function openBilling() {
   const b = state.billing;
   const providers = (b && b.providers) || [];
   if (!providers.length) {
-    alert("Оплата пока не подключена");
+    alert(t("Оплата пока не подключена"));
     return;
   }
   $("billing-error").style.display = "none";
   $("billing-text").textContent = b.plan === "pro"
-    ? `Премиум оплачен до ${new Date(b.paid_until * 1000).toLocaleDateString()}. Оплата за 30 дней добавится после этой даты.`
-    : "100 клипов за период вместо 2 в месяц, без концовки с логотипом.";
+    ? t("Премиум оплачен до {date}. Оплата за 30 дней добавится после этой даты.",
+        { date: new Date(b.paid_until * 1000).toLocaleDateString(LOCALE) })
+    : t("100 клипов за период вместо 2 в месяц, без концовки с логотипом.");
   $("billing-plans").innerHTML = providers
     // Действующую подписку Paddle второй раз не оформить — лишний платёж.
     .filter(p => !(b.plan === "pro" && p.recurring))
     .map(p => `<button data-provider="${esc(p.id)}"><span>${esc(p.label)}</span><span>${esc(p.price)}</span></button>`)
-    .join("") || "<p class='hint'>Подписка уже действует.</p>";
+    .join("") || `<p class='hint'>${t("Подписка уже действует.")}</p>`;
   $("billing-modal").style.display = "flex";
 }
 
@@ -1322,7 +1624,7 @@ $("billing-plans").addEventListener("click", async (e) => {
       location.href = co.url;     // страница оплаты ЮKassa, вернётся с ?paid=
     }
   } catch (err) {
-    $("billing-error").textContent = "Не удалось начать оплату: " + err.message;
+    $("billing-error").textContent = t("Не удалось начать оплату: ") + err.message;
     $("billing-error").style.display = "block";
   }
   btn.disabled = false;
@@ -1348,7 +1650,7 @@ function loadPaddle(info) {
       });
       resolve();
     };
-    s.onerror = () => { _paddleReady = null; reject(new Error("Paddle.js не загрузился")); };
+    s.onerror = () => { _paddleReady = null; reject(new Error(t("Paddle.js не загрузился"))); };
     document.head.appendChild(s);
   });
   return _paddleReady;
@@ -1366,7 +1668,7 @@ async function openPaddle(transactionId) {
 // сразу после оплаты и думает, что деньги пропали.
 async function waitForPro() {
   const before = state.billing ? state.billing.paid_until : null;
-  $("plan").textContent = "проверяю оплату…";
+  $("plan").textContent = t("проверяю оплату…");
   $("plan").style.display = "";
   for (let i = 0; i < 20; i++) {
     const b = await loadBilling();
@@ -1374,7 +1676,7 @@ async function waitForPro() {
     await new Promise(r => setTimeout(r, 3000));
   }
   renderPlan(state.billing);
-  alert("Оплата ещё не подтвердилась. Если деньги списаны, премиум включится в течение нескольких минут.");
+  alert(t("Оплата ещё не подтвердилась. Если деньги списаны, премиум включится в течение нескольких минут."));
 }
 
 // ---------- администрирование ----------
@@ -1391,19 +1693,19 @@ const errText = async (res) => {
 
 async function hostState(host) {
   const health = await hostHealth(host);
-  if (!health) return { ok: false, text: "недоступен", queue: "—" };
-  let text = health.ready ? "CS2 готова" : (health.detail || "не готов");
+  if (!health) return { ok: false, text: t("недоступен"), queue: "—" };
+  let text = health.ready ? t("CS2 готова") : (health.detail || t("не готов"));
   try {
     const s = await (await authFetch(host + "/api/session")).json();
-    if (!s.enabled) text = "рабочий стол (OBS)";
-    else if (health.ready) text = `headless ${s.resolution} · CS2 готова`;
+    if (!s.enabled) text = t("рабочий стол (OBS)");
+    else if (health.ready) text = t("headless {res} · CS2 готова", { res: s.resolution });
   } catch {}
   return { ok: Boolean(health.ready), text, queue: health.jobs_in_queue ?? "—" };
 }
 
 const stateCell = (st) => st
   ? `<span class="dot ${st.ok ? "ok" : "bad"}" style="display:inline-block;margin-right:6px"></span>${esc(st.text)}`
-  : `<span class="hint">выключен</span>`;
+  : `<span class="hint">${t("выключен")}</span>`;
 
 let _adminLoading = false;
 async function loadAdmin() {
@@ -1423,10 +1725,10 @@ async function loadAdmin() {
     const states = await Promise.all(list.map((h) => (h.enabled ? hostState(h.url) : null)));
 
     $("admin-services").innerHTML = `
-      <tr><td>Библиотека и авторизация</td><td>${esc(LIB_LABEL)}</td>
-          <td>${stateCell({ ok: !listError, text: listError ? "ошибка: " + listError : "работает" })}</td></tr>
-      <tr><td>Рендер по умолчанию (config.js)</td><td>${esc(API_LABEL)}</td>
-          <td>${fallback ? stateCell(fallback) : '<span class="hint">не используется: есть включённые хосты</span>'}</td></tr>`;
+      <tr><td>${t("Библиотека и авторизация")}</td><td>${esc(LIB_LABEL)}</td>
+          <td>${stateCell({ ok: !listError, text: listError ? t("ошибка: ") + listError : t("работает") })}</td></tr>
+      <tr><td>${t("Рендер по умолчанию (config.js)")}</td><td>${esc(API_LABEL)}</td>
+          <td>${fallback ? stateCell(fallback) : `<span class="hint">${t("не используется: есть включённые хосты")}</span>`}</td></tr>`;
 
     $("admin-hosts").innerHTML = list.map((h, i) => `
       <tr data-id="${esc(h.id)}" data-url="${esc(h.url)}">
@@ -1435,13 +1737,13 @@ async function loadAdmin() {
         <td>${stateCell(states[i])}</td>
         <td>${states[i] ? esc(states[i].queue) : "—"}</td>
         <td><input type="checkbox" data-act="toggle" ${h.enabled ? "checked" : ""}></td>
-        <td>${h.enabled ? '<button class="ghost" data-act="restart">Перезапустить CS2</button>' : ""}
-            <button class="ghost" data-act="delete">Удалить</button></td>
+        <td>${h.enabled ? `<button class="ghost" data-act="restart">${t("Перезапустить CS2")}</button>` : ""}
+            <button class="ghost" data-act="delete">${t("Удалить")}</button></td>
       </tr>`).join("");
     const note = $("admin-hosts-note");
     note.style.display = enabled.length ? "none" : "block";
-    note.textContent = listError ? `Список хостов не загрузился: ${listError}`
-      : `Включённых хостов нет — задачи идут на адрес из config.js: ${API_LABEL}`;
+    note.textContent = listError ? t("Список хостов не загрузился: {err}", { err: listError })
+      : t("Включённых хостов нет — задачи идут на адрес из config.js: {addr}", { addr: API_LABEL });
   } finally {
     _adminLoading = false;
   }
@@ -1472,11 +1774,11 @@ $("host-add").onclick = async () => {
     const health = await hostHealth(url.replace(/\/+$/, ""));
     // Хост не ответил — не обязательно ошибка (его могут поднять позже), но
     // чаще всего это не тот порт или CORS без адреса этого UI.
-    $("host-hint").textContent = health ? "Хост добавлен"
-      : "Хост добавлен, но не отвечает: проверьте адрес, порт и CORS на хосте";
+    $("host-hint").textContent = health ? t("Хост добавлен")
+      : t("Хост добавлен, но не отвечает: проверьте адрес, порт и CORS на хосте");
     await hostsChanged();
   } catch (err) {
-    $("host-hint").textContent = "Ошибка: " + err.message;
+    $("host-hint").textContent = t("Ошибка: ") + err.message;
   }
   $("host-add").disabled = false;
 };
@@ -1498,14 +1800,14 @@ $("admin-hosts").addEventListener("click", async (e) => {
   const row = btn.closest("tr");
   if (btn.dataset.act === "restart") {
     // Перезапуск обрывает запись, которая идёт на хосте прямо сейчас.
-    if (!confirm(`Перезапустить CS2 на ${row.dataset.url}? Текущая запись на нём оборвётся.`)) return;
+    if (!confirm(t("Перезапустить CS2 на {url}? Текущая запись на нём оборвётся.", { url: row.dataset.url }))) return;
     btn.disabled = true;
-    btn.textContent = "перезапускаю…";
+    btn.textContent = t("перезапускаю…");
     try { await authFetch(row.dataset.url + "/api/session/restart", { method: "POST" }); } catch {}
     return loadAdmin();
   }
   if (btn.dataset.act === "delete") {
-    if (!confirm(`Убрать хост ${row.dataset.url} из списка? Его задачи и демки пропадут из интерфейса.`)) return;
+    if (!confirm(t("Убрать хост {url} из списка? Его задачи и демки пропадут из интерфейса.", { url: row.dataset.url }))) return;
     await authFetch(lib(`/api/admin/render-hosts/${encodeURIComponent(row.dataset.id)}`),
                     { method: "DELETE" }).catch(() => {});
     hostsChanged();
@@ -1575,7 +1877,7 @@ if (getToken()) {
   showApp();
   initApp();
 } else {
-  showLogin(loginError);
+  showLogin(loginError && t(loginError));
 }
 </script>
 </body>
