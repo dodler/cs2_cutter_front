@@ -270,11 +270,11 @@
           <option value="right">3-е лицо, за правым плечом</option>
           <option value="left">3-е лицо, за левым плечом</option>
         </select></div>
-      <div><label for="frame" title="9:16 и 1:1 CS2 рендерит сразу в 1080×1920 или 1080×1080. В кадре свой набор для шортсов: прицел, килфид, здоровье с бронёй; флажки HUD и килфида на него не влияют. Квадрат — середина обычного кадра во всю высоту. Если прошлая задача была в другой форме кадра, игра перезапускается (~20 с)">Кадр</label>
+      <div><label for="frame" title="В 9:16 и 1:1 полный HUD игры, как на стримах: панель команд с таймером, деньги, килфид, здоровье, патроны; флажки HUD и килфида на него не влияют. CS2 снимает квадрат 1080×1080 — середину обычного кадра во всю высоту; для 9:16 он ставится в кадр 1080×1920, сверху и снизу размытый фон. Если прошлая задача была в другой форме кадра, игра перезапускается (~20 с)">Кадр</label>
         <select id="frame">
           <option value="landscape">16:9 — обычный</option>
-          <option value="vertical">9:16 — шортсы (килфид, хп, броня, прицел)</option>
-          <option value="square">1:1 — квадрат (килфид, хп, броня, прицел)</option>
+          <option value="vertical">9:16 — шортсы (полный HUD)</option>
+          <option value="square">1:1 — квадрат (полный HUD)</option>
         </select></div>
     </div>
   </section>
@@ -496,12 +496,12 @@ const EN = {
   "3-е лицо, плечо выбирается само": "3rd person, shoulder picked automatically",
   "3-е лицо, за правым плечом": "3rd person, over the right shoulder",
   "3-е лицо, за левым плечом": "3rd person, over the left shoulder",
-  "9:16 и 1:1 CS2 рендерит сразу в 1080×1920 или 1080×1080. В кадре свой набор для шортсов: прицел, килфид, здоровье с бронёй; флажки HUD и килфида на него не влияют. Квадрат — середина обычного кадра во всю высоту. Если прошлая задача была в другой форме кадра, игра перезапускается (~20 с)":
-    "CS2 renders 9:16 and 1:1 natively at 1080×1920 or 1080×1080. These frames get their own shorts HUD: crosshair, killfeed, health and armor; the HUD and killfeed checkboxes don't affect it. Square is the middle of a regular frame at full height. If the previous job used a different frame shape, the game restarts (~20 s)",
+  "В 9:16 и 1:1 полный HUD игры, как на стримах: панель команд с таймером, деньги, килфид, здоровье, патроны; флажки HUD и килфида на него не влияют. CS2 снимает квадрат 1080×1080 — середину обычного кадра во всю высоту; для 9:16 он ставится в кадр 1080×1920, сверху и снизу размытый фон. Если прошлая задача была в другой форме кадра, игра перезапускается (~20 с)":
+    "9:16 and 1:1 get the full in-game HUD, like on streams: team bar with timer, money, killfeed, health, ammo; the HUD and killfeed checkboxes don't affect it. CS2 renders a 1080×1080 square — the middle of a regular frame at full height; for 9:16 it is placed in a 1080×1920 frame with a blurred background above and below. If the previous job used a different frame shape, the game restarts (~20 s)",
   "Кадр": "Frame",
   "16:9 — обычный": "16:9 — standard",
-  "9:16 — шортсы (килфид, хп, броня, прицел)": "9:16 — shorts (killfeed, HP, armor, crosshair)",
-  "1:1 — квадрат (килфид, хп, броня, прицел)": "1:1 — square (killfeed, HP, armor, crosshair)",
+  "9:16 — шортсы (полный HUD)": "9:16 — shorts (full HUD)",
+  "1:1 — квадрат (полный HUD)": "1:1 — square (full HUD)",
   "В кадре 9:16 и 1:1 набор HUD фиксирован": "9:16 and 1:1 frames use a fixed HUD",
   // 3. игрок и раунды
   "3. Игрок и раунды": "3. Player and rounds",
@@ -683,7 +683,7 @@ for (const b of document.querySelectorAll(".lang-switch")) {
 }
 translateDom(document.body);
 
-const state = { demoId: null, demoHost: null, demos: [], player: null, queuedRounds: new Set(), jobs: new Map(),
+const state = { demoId: null, demoHost: null, demos: [], player: null, queuedRounds: new Map(), jobs: new Map(),
                 editClips: [], role: null, billing: null, es: [] };
 // Запущено ли приложение и его таймеры: выход всё это сбрасывает, иначе
 // после повторного входа initApp() не делал ничего, а старые таймеры
@@ -999,7 +999,7 @@ function showPlayers(info, host) {
   state.demoId = info.id;
   state.demoHost = host;
   state.player = null;
-  state.queuedRounds = new Set();
+  state.queuedRounds = new Map();
   const tbody = $("players");
   tbody.innerHTML = "";
   for (const p of info.players) {
@@ -1010,7 +1010,7 @@ function showPlayers(info, host) {
       [...tbody.children].forEach(r => r.classList.remove("selected"));
       tr.classList.add("selected");
       state.player = p.name;
-      state.queuedRounds = new Set();
+      state.queuedRounds = new Map();
       showRounds(p);
     };
     tbody.appendChild(tr);
@@ -1042,7 +1042,7 @@ function showRounds(p) {
       `<span class="kill" title="${esc(k.weapon)} → ${esc(k.victim)}${k.headshot ? t(", в голову") : ""}">`
       + `<span class="w">${esc(k.weapon)}</span> ${esc(k.victim)}${k.headshot ? '<span class="hs">HS</span>' : ""}</span>`
     ).join("");
-    const queued = state.queuedRounds.has(r.round);
+    const queued = roundQueued(r.round);
     return `
       <div class="round${n >= 3 ? " big" : ""}">
         <div class="round-num">${t("Раунд {n}", { n: +r.round })}
@@ -1067,6 +1067,27 @@ function plural(n, ru, en) {
   if (m10 === 1 && m100 !== 11) return one;
   if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
   return many;
+}
+
+// Раунд считается «в задачах», пока его задача не остановлена и не упала:
+// после отмены или ошибки кнопка снова «Нарезать».
+function roundQueued(round) {
+  const key = state.queuedRounds.get(round);
+  if (!key) return false;
+  const j = state.jobs.get(key);
+  return !(j && (j.status === "cancelled" || j.status === "failed"));
+}
+
+function syncRoundButtons() {
+  for (const btn of document.querySelectorAll("#rounds-panel button[data-round]")) {
+    const round = +btn.dataset.round;
+    if (!state.queuedRounds.has(round)) continue;   // «Ставлю…» — ещё ждём ответа
+    const queued = roundQueued(round);
+    btn.classList.toggle("done", queued);
+    btn.disabled = queued;
+    btn.textContent = queued ? t("В задачах ✓") : t("Нарезать");
+    if (!queued) state.queuedRounds.delete(round);
+  }
 }
 
 $("rounds-panel").addEventListener("click", (e) => {
@@ -1111,8 +1132,9 @@ async function cutRound(round, btn) {
       return;
     }
     if (!res.ok) throw new Error((await res.json()).detail);
-    renderJob({ ...(await res.json()), _host: host });
-    state.queuedRounds.add(round);
+    const job = { ...(await res.json()), _host: host };
+    state.queuedRounds.set(round, jobKey(job));
+    renderJob(job);
     btn.classList.add("done");
     btn.textContent = t("В задачах ✓");
     hint.textContent = t("Раунд {n} поставлен в очередь", { n: round });
@@ -1129,6 +1151,7 @@ function renderJob(job) {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
   container.innerHTML = sorted.map(jobHtml).join("") ||
     `<p class='empty'>${t("Задач пока нет.")}</p>`;
+  syncRoundButtons();
 }
 
 function jobHtml(j) {
@@ -1265,6 +1288,7 @@ function renderJob0() {
   const sorted = [...state.jobs.values()].sort((a, b) => b.created_at - a.created_at);
   $("jobs").innerHTML = sorted.map(jobHtml).join("") || `<p class='empty'>${t("Задач пока нет.")}</p>`;
   refreshEditClips();
+  syncRoundButtons();
 }
 
 // ---------- редактирование ----------
