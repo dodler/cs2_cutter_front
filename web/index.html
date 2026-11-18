@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RecoilSnap — CS2 Highlights</title>
+<meta name="description" content="Вертикальные хайлайты CS2 для TikTok, Instagram Reels и YouTube Shorts. Загрузи демку, выбери фраги и скачай готовое видео 9:16.">
 <!-- Логотип собирается в cs2_cutter/branding/build_logo.py, сюда копируются
      готовые SVG: brand/logo.svg (полный, без фона), mark.svg (прицел),
      wordmark.svg (надпись). -->
@@ -164,35 +165,171 @@
   }
   .upsell { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .upsell button { width: auto; padding: 5px 12px; font-size: 13px; }
+
+  /* Лендинг ограничен своим контейнером, чтобы не менять рабочий кабинет. */
+  html { scroll-behavior: smooth; }
+  #login-screen { background: #0d0f12; overflow: hidden; }
+  #login-screen a { color: inherit; text-decoration: none; }
+  #login-screen :focus-visible { outline: 2px solid #ffab53; outline-offset: 5px; }
+  .landing-wrap { width: min(1200px, calc(100% - 64px)); margin: auto; }
+  .landing-nav { height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 28px; border-bottom: 1px solid #ffffff12; }
+  .landing-brand { display: flex; align-items: center; gap: 8px; }
+  .landing-brand img:first-child { width: 38px; height: 38px; }
+  .landing-brand img:last-child { width: 152px; height: 41px; }
+  .landing-links { display: flex; gap: 30px; color: #abb0bb; font-size: 14px; }
+  .landing-tools { display: flex; gap: 12px; align-items: center; }
+  #login-screen .landing-small { padding: 9px 16px; font-size: 13px; }
+  .landing-hero { padding: 48px 0 48px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 48px; align-items: center; }
+  .landing-eyebrow { font: 600 11px/1.5 ui-monospace, monospace; letter-spacing: .17em; text-transform: uppercase; color: #f4a252; display: flex; align-items: center; gap: 10px; }
+  .landing-eyebrow::before { content: ''; width: 7px; height: 7px; background: #f4a252; box-shadow: 0 0 18px #f4a25280; }
+  .landing-hero h1 { font-size: clamp(40px, 4.7vw, 64px); line-height: 1.04; letter-spacing: -.055em; font-weight: 800; margin: 24px 0; }
+  .landing-hero h1 span { display: block; color: #f4a252; }
+  .landing-copy { color: #a4a9b3; font-size: 17px; line-height: 1.75; max-width: 430px; }
+  .landing-cta { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin: 30px 0 16px; }
+  #login-screen .landing-primary { display: inline-flex; align-items: center; justify-content: center; gap: 16px; background: #f4a252; color: #17110b; padding: 15px 23px; border-radius: 6px; font-size: 14px; font-weight: 700; }
+  #login-screen .landing-primary:hover { background: #ffb974; }
+  .landing-secondary { font-size: 14px; border-bottom: 1px solid #6e7279; padding-bottom: 4px; }
+  .landing-note { font-size: 12px; color: #787f8c; }
+  .landing-preview-group { width: min(100%, 320px); justify-self: center; }
+  .landing-platforms { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 24px; font-size: 11px; color: #a4a9b3; }
+  .landing-preview { position: relative; padding: 10px; border: 1px solid #ffffff20; border-radius: 22px; background: #191c21; transform: rotate(2deg); box-shadow: 0 30px 80px #0008; }
+  .landing-preview::before { content: ''; position: absolute; inset: -65px; background: radial-gradient(ellipse, #d4842620, transparent 65%); z-index: -1; }
+  .landing-preview-bar { display: flex; align-items: center; justify-content: space-between; color: #979da9; font: 10px ui-monospace, monospace; padding: 4px 4px 14px; letter-spacing: .1em; }
+  .landing-preview video { width: 100%; display: block; aspect-ratio: 9/16; border-radius: 12px; background: #000; }
+  .landing-preview-caption { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 14px 5px 2px; }
+  .landing-preview-caption span:last-child { color: #f4a252; }
+  .landing-strip { border-top: 1px solid #ffffff12; border-bottom: 1px solid #ffffff12; display: flex; justify-content: space-between; gap: 16px; padding: 22px 0; font: 11px ui-monospace, monospace; letter-spacing: .08em; color: #9ca2ae; text-transform: uppercase; }
+  .landing-strip span::before { content: '+'; color: #f4a252; margin-right: 12px; }
+  .landing-section { padding: 80px 0; scroll-margin-top: 24px; }
+  .landing-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 28px; }
+  #login-screen h2 { font-size: clamp(28px, 3.2vw, 42px); line-height: 1.15; letter-spacing: -.035em; margin: 12px 0 0; color: #f0f1f4; }
+  .landing-section-heading p { max-width: 320px; color: #9299a6; font-size: 14px; margin: 0; }
+  .landing-formats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  #login-screen .format-button { background: transparent; color: #a9b0bc; border: 1px solid #343942; padding: 10px 18px; border-radius: 6px; font-size: 13px; }
+  #login-screen .format-button[aria-pressed=true] { background: #f4a252; color: #17110b; border-color: #f4a252; }
+  .landing-showcase { display: grid; grid-template-columns: 1.65fr 1fr; background: #15181d; border: 1px solid #2b3038; border-radius: 10px; overflow: hidden; }
+  .landing-player { height: 540px; background: #090b0e; display: flex; justify-content: center; padding: 16px; }
+  .landing-player video { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .landing-format-info { padding: 42px; display: flex; flex-direction: column; justify-content: center; align-items: start; }
+  .landing-format-info h3 { font-size: 28px; line-height: 1.2; letter-spacing: -.03em; margin: 18px 0 12px; }
+  .landing-format-info p { color: #9ca3af; font-size: 15px; line-height: 1.8; }
+  .landing-tag { font: 12px ui-monospace, monospace; color: #f4a252; border: 1px solid #61472d; padding: 5px 10px; border-radius: 4px; }
+  .landing-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 36px; margin-top: 38px; }
+  .landing-step { border-top: 1px solid #343942; padding-top: 24px; }
+  .landing-step > span { color: #f4a252; font: 12px ui-monospace, monospace; }
+  .landing-step h3 { font-size: 19px; margin: 20px 0 10px; }
+  .landing-step p { color: #9299a6; font-size: 14px; line-height: 1.8; margin: 0; }
+  .landing-start { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; border-top: 1px solid #343942; padding: 64px 0; }
+  .landing-login { background: #191c21; border: 1px solid #343942; border-radius: 10px; padding: 28px; }
+  #login-screen .landing-login .landing-primary { width: 100%; }
+  .landing-login details { margin-top: 20px; }
+  .landing-login summary { cursor: pointer; color: #8f96a3; font-size: 12px; }
+  .landing-login .hint { margin: 14px 0 0; line-height: 1.7; }
+  .landing-footer { border-top: 1px solid #ffffff12; padding: 26px 0; display: flex; justify-content: space-between; gap: 20px; color: #6f7784; font-size: 11px; }
+  @media(max-width: 900px) {
+    .landing-hero { gap: 30px; padding-top: 56px; }
+    .landing-hero h1 { font-size: 44px; }
+    .landing-links { display: none; }
+    .landing-format-info { padding: 24px; }
+  }
+  @media(max-width: 680px) {
+    .landing-wrap { width: calc(100% - 36px); }
+    .landing-nav { height: 78px; gap: 10px; }
+    .landing-brand img:last-child { width: 116px; }
+    .landing-brand img:first-child { width: 28px; }
+    .landing-tools { gap: 6px; }
+    #login-screen .landing-small { padding: 8px 10px; }
+    .landing-hero { grid-template-columns: 1fr; padding: 40px 0; gap: 36px; }
+    .landing-hero h1 { font-size: clamp(36px, 10vw, 52px); }
+    .landing-preview-group { width: min(100%, 280px); }
+    .landing-preview { transform: none; }
+    .landing-strip { flex-wrap: wrap; font-size: 10px; gap: 14px 20px; }
+    .landing-strip span { flex: 1 1 40%; }
+    .landing-section { padding: 48px 0; }
+    .landing-section-heading { display: block; }
+    .landing-section-heading p { margin-top: 16px; }
+    .landing-showcase, .landing-start, .landing-steps { grid-template-columns: 1fr; }
+    .landing-player { height: 460px; }
+    .landing-format-info { padding: 24px; }
+    .landing-format-info h3 { margin-top: 12px; }
+    .landing-steps { gap: 28px; }
+    .landing-start { gap: 24px; padding: 40px 0; }
+    .landing-footer { flex-direction: column; gap: 8px; }
+  }
+  @media(prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
 </style>
 </head>
 <body>
-<div id="login-screen" style="display:none; max-width:340px; margin:80px auto; padding:24px;" class="card">
-  <img class="login-logo" src="brand/logo.svg" alt="RecoilSnap — CS2 Highlights" width="820" height="600">
-  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
-    <h2 style="margin:0">Вход</h2>
-    <button class="ghost lang-switch" style="padding:3px 10px; font-size:12px"></button>
+<!-- Вход администратора — только по адресу /admin (web/admin/index.html
+     переводит сюда с #admin): на лендинге пользователю он ни к чему. -->
+<div id="admin-login" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px">
+  <div class="landing-login" style="width:100%;max-width:380px">
+    <h2 style="margin:0 0 16px">Вход администратора</h2>
+    <div style="display:grid;gap:10px">
+      <div><label for="login-user">Логин</label><input id="login-user" autocomplete="username"></div>
+      <div><label for="login-pass">Пароль</label><input id="login-pass" type="password" autocomplete="current-password"></div>
+      <button id="login-submit">Войти</button>
+      <div class="err" id="admin-login-error" role="alert" style="display:none"></div>
+    </div>
   </div>
-  <div style="display:grid; gap:10px">
-    <button id="login-steam" class="steam-btn">Войти через Steam</button>
-    <p class="hint" style="margin:0">Бесплатно — 2 клипа в месяц с концовкой-логотипом, в премиуме — 100 и без неё.</p>
-    <div class="err" id="login-error" style="display:none"></div>
-    <!-- Вход по паролю — только администратор (им же логинится рендер-хост),
-         поэтому он спрятан, а не убран. -->
-    <details>
-      <summary class="hint" style="cursor:pointer">Вход администратора</summary>
-      <div style="display:grid; gap:10px; margin-top:10px">
-        <div>
-          <label for="login-user">Логин</label>
-          <input id="login-user" autocomplete="username">
-        </div>
-        <div>
-          <label for="login-pass">Пароль</label>
-          <input id="login-pass" type="password" autocomplete="current-password">
-        </div>
-        <button id="login-submit">Войти</button>
+</div>
+
+<div id="login-screen" style="display:none">
+  <div class="landing-wrap">
+    <nav class="landing-nav" aria-label="Навигация">
+      <a class="landing-brand" href="#" aria-label="RecoilSnap"><img src="brand/mark.svg" alt="" width="38" height="38"><img src="brand/wordmark.svg" alt="RecoilSnap" width="152" height="41"></a>
+      <div class="landing-links"><a href="#examples">Примеры клипов</a><a href="#how-it-works">Как это работает</a></div>
+      <div class="landing-tools"><button class="ghost lang-switch landing-small"></button><a class="landing-secondary landing-small" href="#start">Войти</a></div>
+    </nav>
+    <section class="landing-hero">
+      <div>
+        <div class="landing-eyebrow">CS2 → TikTok / Instagram Reels</div>
+        <h1>Твои фраги.<span>В TikTok и Reels.</span></h1>
+        <p class="landing-copy">Преврати лучшие раунды CS2 в вертикальные видео 9:16 для TikTok, Instagram Reels и YouTube Shorts. Выбери фраги — мы запишем и нарежем клип.</p>
+        <div class="landing-cta"><a class="landing-primary" href="#start"><span>Создать вертикальный клип</span><span aria-hidden="true">↗</span></a><a class="landing-secondary" href="#examples">Смотреть вертикальные примеры</a></div>
+        <p class="landing-note">Начни бесплатно · Вход через Steam</p>
       </div>
-    </details>
+      <div class="landing-preview-group">
+      <div class="landing-preview">
+        <div class="landing-preview-bar"><span>RECOILSNAP / 9:16</span><span>● VERTICAL</span></div>
+        <video id="landing-hero-video" src="samples/vertical.mp4?v=edzz-4k" poster="samples/vertical.jpg?v=edzz-4k" controls muted playsinline preload="none" aria-label="Вертикальный хайлайт CS2 для TikTok и Instagram Reels"></video>
+        <div class="landing-preview-caption"><span>Edzz / USP-S</span><span>4 KILLS · 4 HS</span></div>
+      </div>
+      <div class="landing-platforms"><span>TikTok</span><span>Instagram Reels</span><span>YouTube Shorts</span></div>
+      </div>
+    </section>
+    <div class="landing-strip"><span>Из демки в Reels</span><span>Слоумо на фрагах</span><span>Вертикальный формат 9:16</span><span>Готовый MP4</span></div>
+    <section class="landing-section" id="examples">
+      <div class="landing-section-heading"><div><div class="landing-eyebrow">Снято в RecoilSnap</div><h2>Один раунд. Готовый Reels.</h2></div><p>Посмотри вертикальный рендер 9:16 и вариант с размытым фоном на одном реальном хайлайте. Квадрат и широкий кадр тоже доступны.</p></div>
+      <div class="landing-formats" role="group" aria-label="Формат видео">
+        <button class="format-button" data-format="vertical" aria-pressed="true">Для TikTok / Reels · 9:16</button>
+        <button class="format-button" data-format="blur" aria-pressed="false">Вертикаль с фоном</button>
+        <button class="format-button" data-format="square" aria-pressed="false">Квадрат 1:1</button>
+        <button class="format-button" data-format="wide" aria-pressed="false">Широкий 16:9</button>
+      </div>
+      <div class="landing-showcase">
+        <div class="landing-player"><video id="landing-sample" src="samples/vertical.mp4?v=edzz-4k" poster="samples/vertical.jpg?v=edzz-4k" controls playsinline preload="none" aria-label="Пример видео в выбранном формате"></video></div>
+        <div class="landing-format-info"><span class="landing-tag" id="landing-ratio">9:16</span><h3 id="landing-format-title">Вертикальный рендер для твоей ленты</h3><p id="landing-format-description">CS2 рендерит сцену сразу в 9:16. Скачай готовый MP4 и опубликуй в TikTok, Instagram Reels или YouTube Shorts.</p><a class="landing-secondary" href="#start">Сделать свой вертикальный клип ↗</a></div>
+      </div>
+    </section>
+    <section class="landing-section" id="how-it-works">
+      <div class="landing-eyebrow">От матча до публикации</div><h2>Сыграй раунд. Покажи его в ленте.</h2>
+      <div class="landing-steps">
+        <div class="landing-step"><span>01 / UPLOAD</span><h3>Загрузи демку</h3><p>Войди через Steam и добавь демку своего матча в CS2.</p></div>
+        <div class="landing-step"><span>02 / SELECT</span><h3>Выбери лучшие раунды</h3><p>Найди себя в списке игроков, выбери раунды с фрагами и включи вертикальный формат 9:16.</p></div>
+        <div class="landing-step"><span>03 / SHARE</span><h3>Скачай и опубликуй</h3><p>Забери вертикальный MP4 из библиотеки и загрузи в TikTok, Instagram Reels или YouTube Shorts.</p></div>
+      </div>
+    </section>
+    <section class="landing-start" id="start">
+      <div><div class="landing-eyebrow">Твой следующий Reels — из CS2</div><h2>Твои лучшие фраги<br>заслуживают Reels.</h2><p class="landing-copy">От демки до вертикального клипа — начни с любимого раунда.</p></div>
+      <div class="landing-login">
+        <button id="login-steam" class="landing-primary">Войти через Steam <span aria-hidden="true">↗</span></button>
+        <p class="hint">Войди через Steam и создай первый вертикальный хайлайт для своей ленты.</p>
+        <div class="err" id="login-error" role="alert" style="display:none"></div>
+      </div>
+    </section>
+    <footer class="landing-footer"><span>© RecoilSnap · CS2 Highlights</span><span>Независимый сервис. Не связан с Valve или Steam.</span></footer>
   </div>
 </div>
 
@@ -317,6 +454,12 @@
         </select>
       </div>
     </div>
+    <!-- Только администратору: пользователям бесплатного тарифа концовка и
+         так приклеивается к клипам при записи. -->
+    <label id="edit-outro-row" style="display:none;margin-top:12px;align-items:center;gap:8px">
+      <input type="checkbox" id="edit-outro" style="width:auto">
+      Добавить концовку с логотипом
+    </label>
     <div class="actions">
       <button id="edit-run">Собрать вертикальный</button>
       <span class="hint" id="edit-hint"></span>
@@ -382,6 +525,47 @@
       <span class="hint" id="host-hint"></span>
     </div>
   </section>
+
+  <section class="card">
+    <h2>Подключить новый хост</h2>
+    <p class="hint" style="margin:-6px 0 14px">
+      Библиотека сама зайдёт на машину по SSH, поставит пакеты и Steam, войдёт
+      в Steam, скачает CS2, поднимет сервис рендера и добавит хост в список выше.
+      Рассчитано на инстанс vast.ai (Ubuntu, вход root, порт 8000 проброшен
+      наружу). Сначала добавьте на машину SSH-ключ библиотеки.
+    </p>
+    <label>SSH-ключ библиотеки (в аккаунт vast.ai или в ~/.ssh/authorized_keys хоста)</label>
+    <div class="actions" style="margin-top:4px">
+      <input type="text" id="prov-key" readonly style="flex:1;min-width:240px;font-family:monospace;font-size:12px">
+      <button class="ghost" id="prov-key-copy">Скопировать</button>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div><label for="prov-host">IP или имя хоста</label>
+        <input type="text" id="prov-host" placeholder="15.218.220.194"></div>
+      <div><label for="prov-port">SSH-порт</label>
+        <input type="text" id="prov-port" placeholder="16903"></div>
+      <div><label for="prov-name">Имя (необязательно)</label>
+        <input type="text" id="prov-name" placeholder="vast-1"></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div><label for="prov-login">Логин Steam</label>
+        <input type="text" id="prov-login" autocomplete="off"></div>
+      <div><label for="prov-pass">Пароль Steam</label>
+        <input type="password" id="prov-pass" autocomplete="new-password"></div>
+      <div><label for="prov-url">Внешний адрес API (необязательно)</label>
+        <input type="text" id="prov-url" placeholder="определится сам"></div>
+    </div>
+    <p class="hint" style="margin-top:8px">
+      Пароль Steam не сохраняется: он нужен один раз для входа на хосте, дальше
+      Steam помнит вход сам. Аккаунт должен быть свой у каждого хоста — одна и та
+      же CS2 на двух машинах выкидывает друг друга.
+    </p>
+    <div class="actions">
+      <button id="prov-start">Подключить</button>
+      <span class="hint" id="prov-hint"></span>
+    </div>
+    <div id="prov-jobs"></div>
+  </section>
 </div>
 </main>
 </div>
@@ -428,6 +612,54 @@ const LOCALE = LANG === "ru" ? "ru-RU" : "en-GB";
 document.documentElement.lang = LANG;
 
 const EN = {
+  "Навигация": "Navigation",
+  "Примеры клипов": "Clip examples",
+  "Как это работает": "How it works",
+  "CS2 → TikTok / Instagram Reels": "CS2 \u2192 TikTok / Instagram Reels",
+  "Твои фраги.": "Your frags.",
+  "В TikTok и Reels.": "Made for TikTok & Reels.",
+  "Преврати лучшие раунды CS2 в вертикальные видео 9:16 для TikTok, Instagram Reels и YouTube Shorts. Выбери фраги — мы запишем и нарежем клип.": "Turn your CS2 demo into a video worth replaying. Pick your frags — we take care of recording and cutting.",
+  "Создать вертикальный клип": "Create a vertical clip",
+  "Смотреть вертикальные примеры": "Watch vertical examples",
+  "Начни бесплатно · Вход через Steam": "Start for free · Sign in with Steam",
+  "Вертикальный хайлайт CS2 для TikTok и Instagram Reels": "Vertical CS2 highlight for TikTok and Instagram Reels",
+  "Из демки в Reels": "From demo to Reels",
+  "Слоумо на фрагах": "Slow motion kills",
+  "Вертикальный формат 9:16": "Vertical 9:16 format",
+  "Готовый MP4": "Ready as MP4",
+  "Снято в RecoilSnap": "Made with RecoilSnap",
+  "Один раунд. Готовый Reels.": "One round. Ready for Reels.",
+  "Посмотри вертикальный рендер 9:16 и вариант с размытым фоном на одном реальном хайлайте. Квадрат и широкий кадр тоже доступны.": "Compare a native 9:16 render with a blurred-background version of the same real highlight. Square and landscape formats are available too.",
+  "Формат видео": "Video format",
+  "Широкий 16:9": "Landscape 16:9",
+  "Для TikTok / Reels · 9:16": "For TikTok / Reels \u00b7 9:16",
+  "Квадрат 1:1": "Square 1:1",
+  "Вертикаль с фоном": "Portrait with background",
+  "Пример видео в выбранном формате": "Example video in the selected format",
+  "Весь момент в кадре": "The whole moment in frame",
+  "Классический широкий кадр: окружение, прицел и каждый фраг. Для YouTube и просмотра на большом экране.": "The classic wide frame: the map, your crosshair and every frag. For YouTube and the big screen.",
+  "Сделать свой вертикальный клип ↗": "Create your highlight ↗",
+  "От матча до публикации": "From match to post",
+  "Сыграй раунд. Покажи его в ленте.": "Play a round. Share it in your feed.",
+  "Загрузи демку": "Upload your demo",
+  "Войди через Steam и добавь демку своего матча в CS2.": "Sign in with Steam and upload a demo of your CS2 match.",
+  "Выбери лучшие раунды": "Pick your best rounds",
+  "Найди себя в списке игроков, выбери раунды с фрагами и включи вертикальный формат 9:16.": "Find yourself in the player list, pick your best rounds and enable vertical 9:16 format.",
+  "Скачай и опубликуй": "Download and post",
+  "Забери вертикальный MP4 из библиотеки и загрузи в TikTok, Instagram Reels или YouTube Shorts.": "Download your vertical MP4 from the library and upload it to TikTok, Instagram Reels or YouTube Shorts.",
+  "Твой следующий Reels — из CS2": "Your next Reel starts in CS2",
+  "Твои лучшие фраги": "Your best frags",
+  "заслуживают Reels.": "deserve a Reel.",
+  "От демки до вертикального клипа — начни с любимого раунда.": "From demo to vertical clip \u2014 start with your favourite round.",
+  "Войди через Steam и создай первый вертикальный хайлайт для своей ленты.": "Sign in with Steam and create your first vertical highlight for your feed.",
+  "Независимый сервис. Не связан с Valve или Steam.": "Independent service. Not affiliated with Valve or Steam.",
+  "Вертикальный рендер для твоей ленты": "Rendered vertically for your feed",
+  "CS2 рендерит сцену сразу в 9:16. Скачай готовый MP4 и опубликуй в TikTok, Instagram Reels или YouTube Shorts.": "CS2 renders the scene directly in 9:16. Download your MP4 and post it to TikTok, Instagram Reels or YouTube Shorts.",
+  "В центре событий": "At the centre of the action",
+  "Квадратный кадр с фокусом на игре. Компактный формат для публикаций в ленте.": "A square frame focused on the action. A compact format for your feed.",
+  "Весь кадр в вертикали": "The full frame, in portrait",
+  "Игровой кадр целиком на мягком размытом фоне. Вертикальное видео с сохранением деталей по краям.": "The full gameplay frame on a softly blurred background. A portrait video that keeps the details at the edges.",
+
   // вход и шапка
   "Вход": "Sign in",
   "Войти через Steam": "Sign in with Steam",
@@ -627,6 +859,46 @@ const EN = {
   "перезапускаю…": "restarting…",
   "Убрать хост {url} из списка? Его задачи и демки пропадут из интерфейса.":
     "Remove host {url} from the list? Its jobs and demos will disappear from the UI.",
+  "Подключить новый хост": "Set up a new host",
+  "Библиотека сама зайдёт на машину по SSH, поставит пакеты и Steam, войдёт в Steam, скачает CS2, поднимет сервис рендера и добавит хост в список выше. Рассчитано на инстанс vast.ai (Ubuntu, вход root, порт 8000 проброшен наружу). Сначала добавьте на машину SSH-ключ библиотеки.":
+    "The library will SSH into the machine, install packages and Steam, sign in to Steam, download CS2, start the render service and add the host to the list above. Built for a vast.ai instance (Ubuntu, root login, port 8000 exposed). Add the library's SSH key to the machine first.",
+  "SSH-ключ библиотеки (в аккаунт vast.ai или в ~/.ssh/authorized_keys хоста)":
+    "Library SSH key (add it to your vast.ai account or the host's ~/.ssh/authorized_keys)",
+  "Скопировать": "Copy",
+  "Скопировано": "Copied",
+  "IP или имя хоста": "Host IP or name",
+  "SSH-порт": "SSH port",
+  "Логин Steam": "Steam login",
+  "Пароль Steam": "Steam password",
+  "Внешний адрес API (необязательно)": "Public API address (optional)",
+  "определится сам": "detected automatically",
+  "Пароль Steam не сохраняется: он нужен один раз для входа на хосте, дальше Steam помнит вход сам. Аккаунт должен быть свой у каждого хоста — одна и та же CS2 на двух машинах выкидывает друг друга.":
+    "The Steam password is not stored: it is used once to sign in on the host, then Steam remembers the session. Each host needs its own account: the same account running CS2 on two machines kicks one of them out.",
+  "Подключить": "Set up",
+  "Укажите хост": "Enter the host",
+  "Подключение по SSH": "SSH connection",
+  "Загрузка кода рендера": "Uploading render code",
+  "Пакеты и окружение": "Packages and environment",
+  "Запуск Steam": "Starting Steam",
+  "Вход в Steam": "Steam sign-in",
+  "Установка CS2": "Installing CS2",
+  "Запуск сервиса рендера": "Starting the render service",
+  "Добавление в список хостов": "Adding to the host list",
+  "идёт": "running",
+  "нужен код Steam Guard": "Steam Guard code needed",
+  "готово": "done",
+  "ошибка": "failed",
+  "отменено": "cancelled",
+  "Код Steam Guard": "Steam Guard code",
+  "Отправить код": "Send code",
+  "Отменить": "Cancel",
+  "Добавить концовку с логотипом": "Add the logo outro",
+  "с концовкой": "with outro",
+  "концовка не приклеилась: ": "outro was not added: ",
+  "Убрать": "Remove",
+  "Укажите SSH-порт (из vast: ssh -p ПОРТ root@IP)": "Enter the SSH port (from vast: ssh -p PORT root@IP)",
+  "Лог": "Log",
+  "Хост подключён: {url}": "Host is set up: {url}",
 };
 
 // t("Раунд {n}", { n: 3 }) — перевод с подстановкой.
@@ -637,7 +909,7 @@ function t(s, vars) {
 }
 
 // Статичная разметка переводится одним проходом: текстовые узлы и атрибуты
-// title/placeholder/alt, ключ — текст со схлопнутыми пробелами.
+// title/placeholder/alt/aria-label, ключ — текст со схлопнутыми пробелами.
 function translateDom(root) {
   if (LANG === "ru") return;
   const norm = (s) => s.replace(/\s+/g, " ").trim();
@@ -651,8 +923,8 @@ function translateDom(root) {
       n.nodeValue = lead + EN[key] + tail;
     }
   }
-  for (const el of root.querySelectorAll("[title], [placeholder], [alt]")) {
-    for (const a of ["title", "placeholder", "alt"]) {
+  for (const el of root.querySelectorAll("[title], [placeholder], [alt], [aria-label]")) {
+    for (const a of ["title", "placeholder", "alt", "aria-label"]) {
       const v = el.getAttribute(a);
       if (v && norm(v) in EN) el.setAttribute(a, EN[norm(v)]);
     }
@@ -818,11 +1090,46 @@ async function authFetch(url, opts = {}) {
   return res;
 }
 
+// ---------- примеры на лендинге ----------
+// Публичные копии не требуют JWT и не открывают доступ к личной библиотеке.
+const landingFormats = {
+  wide: ["16:9", "Весь момент в кадре", "Классический широкий кадр: окружение, прицел и каждый фраг. Для YouTube и просмотра на большом экране."],
+  vertical: ["9:16", "Вертикальный рендер для твоей ленты", "CS2 рендерит сцену сразу в 9:16. Скачай готовый MP4 и опубликуй в TikTok, Instagram Reels или YouTube Shorts."],
+  square: ["1:1", "В центре событий", "Квадратный кадр с фокусом на игре. Компактный формат для публикаций в ленте."],
+  blur: ["9:16 / BLUR", "Весь кадр в вертикали", "Игровой кадр целиком на мягком размытом фоне. Вертикальное видео с сохранением деталей по краям."]
+};
+for (const button of document.querySelectorAll("[data-format]")) {
+  button.onclick = () => {
+    const key = button.dataset.format;
+    const [ratio, title, description] = landingFormats[key];
+    const video = $("landing-sample");
+    video.pause();
+    video.poster = `samples/${key}.jpg?v=edzz-4k`;
+    video.src = `samples/${key}.mp4?v=edzz-4k`;
+    video.load();
+    $("landing-ratio").textContent = ratio;
+    $("landing-format-title").textContent = t(title);
+    $("landing-format-description").textContent = t(description);
+    for (const item of document.querySelectorAll("[data-format]")) item.setAttribute("aria-pressed", String(item === button));
+  };
+}
+// Два примера не должны одновременно играть и перекрывать друг другу звук.
+for (const video of document.querySelectorAll("#login-screen video")) {
+  video.addEventListener("play", () => {
+    for (const other of document.querySelectorAll("#login-screen video")) if (other !== video) other.pause();
+  });
+}
+
+const isAdminLogin = () => location.hash === "#admin";
+
 function showLogin(message) {
   $("app-root").style.display = "none";
-  $("login-screen").style.display = "block";
-  $("login-error").style.display = message ? "block" : "none";
-  $("login-error").textContent = message || "";
+  const admin = isAdminLogin();
+  $("login-screen").style.display = admin ? "none" : "block";
+  $("admin-login").style.display = admin ? "flex" : "none";
+  const err = admin ? $("admin-login-error") : $("login-error");
+  err.style.display = message ? "block" : "none";
+  err.textContent = message || "";
 
   // Содержимое подчищаем, а не просто прячем. Иначе после повторного входа
   // на экране остаются карточки от прошлой сессии с видео, подписанными уже
@@ -842,6 +1149,10 @@ function showLogin(message) {
 }
 
 function showApp() {
+  $("admin-login").style.display = "none";
+  // Из /admin после входа — в обычный адрес приложения, без #admin.
+  if (isAdminLogin()) history.replaceState(null, "", location.pathname + location.search);
+  for (const video of document.querySelectorAll("#login-screen video")) video.pause();
   $("login-screen").style.display = "none";
   $("app-root").style.display = "block";
 }
@@ -851,7 +1162,7 @@ $("login-submit").onclick = async () => {
   const password = $("login-pass").value;
   if (!username || !password) return;
   $("login-submit").disabled = true;
-  $("login-error").style.display = "none";
+  $("admin-login-error").style.display = "none";
   try {
     // Авторизация живёт вместе с библиотекой, а не на рендер-хосте.
     const res = await fetch(lib("/api/auth/login"), {
@@ -866,8 +1177,8 @@ $("login-submit").onclick = async () => {
     showApp();
     initApp();
   } catch (err) {
-    $("login-error").textContent = err.message;
-    $("login-error").style.display = "block";
+    $("admin-login-error").textContent = err.message;
+    $("admin-login-error").style.display = "block";
   }
   $("login-submit").disabled = false;
 };
@@ -912,6 +1223,8 @@ async function checkLibrarySession() {
   }
   const admin = state.role === "admin";
   $("admin-tab-btn").style.display = admin ? "" : "none";
+  $("edit-outro-row").style.display = admin ? "flex" : "none";
+  if (!admin) $("edit-outro").checked = false;
   if (!admin && tabVisible("admin")) showTab("cut");
 }
 
@@ -1329,18 +1642,19 @@ $("edit-run").onclick = async () => {
   try {
     const res = await fetch(hostAuth(it.host, "/api/vertical"), {
       method: "POST", headers: { "Content-Type": "application/json", "Accept-Language": LANG },
-      body: JSON.stringify({ mode, ...it.body }) });
+      body: JSON.stringify({ mode, outro: $("edit-outro").checked, ...it.body }) });
     if (!res.ok) throw new Error(((await res.json()).detail) || res.status);
     const v = await res.json();
     const src = v.in_library ? libAuth(v.file_url) : hostAuth(it.host, v.file_url);
     $("edit-result").innerHTML = `
       <div class="clip">
         <video controls preload="metadata" src="${esc(src)}" style="max-height:70vh"></video>
-        <div><b>1080×1920</b> · ${esc(v.mode === "crop" ? t("обрезка по краям") : t("размытие сверху и снизу"))}
+        <div><b>1080×1920</b> · ${esc(v.mode === "crop" ? t("обрезка по краям") : t("размытие сверху и снизу"))}${v.outro ? " · " + esc(t("с концовкой")) : ""}
           ${v.in_library ? `<span class="badge demo" style="margin-left:6px">${t("в библиотеке")}</span>` : ""}</div>
         <div><a href="${esc(src)}" download target="_blank" rel="noopener">${t("скачать")}</a></div>
       </div>`;
-    $("edit-hint").textContent = v.in_library ? t("Готово, фрагмент в библиотеке") : t("Готово");
+    $("edit-hint").textContent = (v.in_library ? t("Готово, фрагмент в библиотеке") : t("Готово"))
+      + (v.outro_error ? " · " + t("концовка не приклеилась: ") + v.outro_error : "");
     if (typeof loadLibrary === "function") loadLibrary();
   } catch (err) {
     $("edit-hint").textContent = t("Ошибка: ") + err.message;
@@ -1838,6 +2152,160 @@ $("admin-hosts").addEventListener("click", async (e) => {
   }
 });
 
+// ---------- подключение нового хоста ----------
+// Задачу ведёт библиотека (app/provision.py): SSH, пакеты, Steam, CS2,
+// сервис. Здесь — форма, ход по этапам и ввод кода Steam Guard, когда Steam
+// его просит. Экран хоста показываем, пока ждём код: только по нему видно,
+// чего именно Steam хочет (код с почты, из приложения или подтверждение).
+const prov = { timer: null, shots: {} };
+
+async function loadProvisionKey() {
+  try {
+    const res = await authFetch(lib("/api/admin/provision/ssh-key"));
+    if (!res.ok) throw new Error(await errText(res));
+    $("prov-key").value = (await res.json()).public_key;
+  } catch (err) {
+    $("prov-key").value = t("ошибка: ") + err.message;
+  }
+}
+
+$("prov-key-copy").onclick = async () => {
+  try { await navigator.clipboard.writeText($("prov-key").value); } catch {
+    $("prov-key").select(); document.execCommand("copy");
+  }
+  $("prov-hint").textContent = t("Скопировано");
+};
+
+$("prov-start").onclick = async () => {
+  const host = $("prov-host").value.trim();
+  if (!host) { $("prov-hint").textContent = t("Укажите хост"); return; }
+  // Порт обязателен: у vast SSH почти никогда не на 22, а с пустым полем
+  // задача молча стучалась в 22 и падала на «SSH не пускает».
+  const port = parseInt($("prov-port").value.trim(), 10);
+  if (!port) { $("prov-hint").textContent = t("Укажите SSH-порт (из vast: ssh -p ПОРТ root@IP)"); return; }
+  $("prov-start").disabled = true;
+  $("prov-hint").textContent = "";
+  try {
+    const res = await authFetch(lib("/api/admin/provision"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        host, port,
+        name: $("prov-name").value.trim(), public_url: $("prov-url").value.trim(),
+        steam_login: $("prov-login").value.trim(), steam_password: $("prov-pass").value,
+      }),
+    });
+    if (!res.ok) throw new Error(await errText(res));
+    // Пароль в форме больше не нужен — не держим его в DOM.
+    $("prov-pass").value = "";
+    await loadProvisionJobs();
+  } catch (err) {
+    $("prov-hint").textContent = t("Ошибка: ") + err.message;
+  }
+  $("prov-start").disabled = false;
+};
+
+const PROV_STATE = { running: "идёт", need_guard: "нужен код Steam Guard", done: "готово",
+                     failed: "ошибка", cancelled: "отменено" };
+const PROV_MARK = { pending: "·", running: "…", done: "✓", skipped: "✓", failed: "✗" };
+
+function renderProvisionJob(j) {
+  const active = j.state === "running" || j.state === "need_guard";
+  const stages = j.stages.map((s) => `
+    <tr><td style="width:24px">${PROV_MARK[s.status] || ""}</td><td>${esc(t(s.title))}</td>
+        <td class="hint">${esc(s.detail || "")}</td></tr>`).join("");
+  const shot = prov.shots[j.id];
+  const guard = j.state === "need_guard" ? `
+    <p>${esc(j.message)}</p>
+    ${shot ? `<img src="${shot}" alt="" style="max-width:100%;border:1px solid var(--line);border-radius:6px">` : ""}
+    <div class="actions">
+      <input type="text" data-guard="${esc(j.id)}" maxlength="5" placeholder="${esc(t("Код Steam Guard"))}" style="width:140px;text-transform:uppercase">
+      <button data-prov-act="guard" data-id="${esc(j.id)}">${t("Отправить код")}</button>
+    </div>` : "";
+  return `
+    <div class="card" style="margin-top:14px;padding:14px">
+      <div class="actions" style="margin-top:0">
+        <b>${esc(j.name || j.host)}</b><span class="hint">${esc(j.host)}:${esc(j.port)}</span>
+        <span class="dot ${j.state === "failed" ? "bad" : "ok"}" style="display:inline-block"></span>
+        <span>${t(PROV_STATE[j.state] || j.state)}</span>
+        ${active ? `<button class="ghost" data-prov-act="cancel" data-id="${esc(j.id)}">${t("Отменить")}</button>`
+                 : `<button class="ghost" data-prov-act="remove" data-id="${esc(j.id)}">${t("Убрать")}</button>`}
+      </div>
+      <table style="margin-top:8px"><tbody>${stages}</tbody></table>
+      ${j.error ? `<p style="color:var(--err)">${esc(j.error)}</p>` : ""}
+      ${j.result_url ? `<p>${esc(t("Хост подключён: {url}", { url: j.result_url }))}</p>` : ""}
+      ${(j.warnings || []).map((w) => `<p class="hint">⚠ ${esc(w)}</p>`).join("")}
+      ${guard}
+      <details style="margin-top:8px"><summary class="hint">${t("Лог")}</summary>
+        <pre style="max-height:260px;overflow:auto;font-size:12px;white-space:pre-wrap">${esc(j.log.join("\n"))}</pre>
+      </details>
+    </div>`;
+}
+
+async function refreshProvisionShot(id) {
+  try {
+    const res = await authFetch(lib(`/api/admin/provision/${encodeURIComponent(id)}/screen`));
+    if (!res.ok) return;
+    const url = URL.createObjectURL(await res.blob());
+    if (prov.shots[id]) URL.revokeObjectURL(prov.shots[id]);
+    prov.shots[id] = url;
+  } catch {}
+}
+
+let _provLoading = false;
+async function loadProvisionJobs() {
+  if (state.role !== "admin" || _provLoading) return;
+  _provLoading = true;
+  try {
+    const res = await authFetch(lib("/api/admin/provision"));
+    if (!res.ok) return;
+    const jobs = await res.json();
+    for (const j of jobs) if (j.state === "need_guard") await refreshProvisionShot(j.id);
+    // Не перерисовываем, пока админ печатает код: иначе поле сотрётся.
+    const typing = document.activeElement && document.activeElement.dataset
+      && document.activeElement.dataset.guard;
+    // По одной задаче на хост — последней: прошлые попытки того же хоста
+    // (в т.ч. с неверным портом) только путают. Список приходит от новых к старым.
+    const seen = new Set();
+    const shown = jobs.filter((j) => !seen.has(j.host) && seen.add(j.host)).slice(0, 5);
+    if (!typing) $("prov-jobs").innerHTML = shown.map(renderProvisionJob).join("");
+    const active = jobs.some((j) => j.state === "running" || j.state === "need_guard");
+    if (jobs.some((j) => j.state === "done")) loadAdmin();
+    clearTimeout(prov.timer);
+    if (active && !$("tab-admin").hidden && $("tab-admin").style.display !== "none") {
+      prov.timer = setTimeout(loadProvisionJobs, 4000);
+    }
+  } catch {} finally {
+    _provLoading = false;
+  }
+}
+
+$("prov-jobs").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-prov-act]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  btn.disabled = true;
+  try {
+    if (btn.dataset.provAct === "remove") {
+      await authFetch(lib(`/api/admin/provision/${encodeURIComponent(id)}`), { method: "DELETE" });
+    } else if (btn.dataset.provAct === "cancel") {
+      await authFetch(lib(`/api/admin/provision/${encodeURIComponent(id)}/cancel`), { method: "POST" });
+    } else if (btn.dataset.provAct === "guard") {
+      const input = document.querySelector(`input[data-guard="${CSS.escape(id)}"]`);
+      const res = await authFetch(lib(`/api/admin/provision/${encodeURIComponent(id)}/guard`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: (input.value || "").trim().toUpperCase() }),
+      });
+      if (!res.ok) throw new Error(await errText(res));
+      input.blur();
+    }
+  } catch (err) {
+    $("prov-hint").textContent = t("Ошибка: ") + err.message;
+  }
+  loadProvisionJobs();
+});
+
 // ---------- вкладки ----------
 const TAB_KEY = "cs2_tab";
 
@@ -1857,7 +2325,7 @@ function showTab(name) {
   // Список клипов для редактирования наполняется из обновлений задач, но на
   // скрытой вкладке его никто не видел — пересобираем на всякий случай.
   if (name === "edit") refreshEditClips();
-  if (name === "admin") loadAdmin();
+  if (name === "admin") { loadAdmin(); loadProvisionKey(); loadProvisionJobs(); }
 }
 
 for (const b of document.querySelectorAll("#tabs button")) {

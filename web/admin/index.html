@@ -1,0 +1,8 @@
+<!doctype html>
+<!-- Адрес входа администратора: host/admin. UI раздаёт простой http.server
+     без маршрутизации, поэтому здесь только переход на основную страницу,
+     которая по #admin показывает форму входа вместо лендинга. -->
+<meta charset="utf-8">
+<title>RecoilSnap — вход администратора</title>
+<script>location.replace("../" + location.search + "#admin");</script>
+<noscript><a href="../#admin">Вход администратора</a></noscript>
