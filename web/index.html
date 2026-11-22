@@ -940,6 +940,9 @@ const EN = {
   "Удалить демку": "Delete demo",
   "Не удалось удалить: ": "Could not delete: ",
   "Демка удалена": "Demo deleted",
+  "Демка не разбирается: ": "Demo cannot be parsed: ",
+  "Демка записана более новой сборкой CS2 (patch {patch}), чем знает разборщик на сервере. Обновите cs2-cutter.":
+    "The demo was recorded by a newer CS2 build (patch {patch}) than the server-side parser knows. Update cs2-cutter.",
   "Удалить демку {name} с хоста {host}? Файл, архив и копия для CS2 удаляются навсегда.":
     "Delete demo {name} from host {host}? The file, the archive and the CS2 copy are removed for good.",
   "Покадровый рендер, fps": "Frame-by-frame render, fps",
@@ -1351,7 +1354,9 @@ $("upload").onchange = async (e) => {
     const info = await res.json();
     await loadDemos({ host, id: info.id });
     showPlayers(info, host);
-    $("demo-hint").textContent = t("Готово: {name}", { name: info.filename });
+    $("demo-hint").textContent = info.problem
+      ? demoProblemText(info.problem)
+      : t("Готово: {name}", { name: info.filename });
   } catch (err) {
     $("demo-hint").textContent = t("Ошибка загрузки: ") + err.message;
   }
@@ -1366,7 +1371,9 @@ $("analyze").onclick = async () => {
     const url = `${item.host}/api/demo/${encodeURIComponent(item.d.id)}/players`;
     const info = await (await authFetch(url)).json();
     showPlayers(info, item.host);
-    $("demo-hint").textContent = t("{rounds} раундов, игроков: {players}", { rounds: info.total_rounds, players: info.players.length });
+    $("demo-hint").textContent = info.problem
+      ? demoProblemText(info.problem)
+      : t("{rounds} раундов, игроков: {players}", { rounds: info.total_rounds, players: info.players.length });
   } catch (err) {
     $("demo-hint").textContent = t("Не удалось разобрать демку");
   }
@@ -2136,6 +2143,17 @@ async function hostState(host) {
     else if (health.ready) text = t("headless {res} · CS2 готова", { res: s.resolution });
   } catch {}
   return { ok: Boolean(health.ready), text, queue: health.jobs_in_queue ?? "—" };
+}
+
+// Причина, по которой демка не разобралась: сервер отдаёт код, фразу
+// собираем здесь, чтобы она была на языке интерфейса.
+function demoProblemText(p) {
+  if (!p) return "";
+  if (p.code === "unsupported_build") {
+    return t("Демка записана более новой сборкой CS2 (patch {patch}), чем знает разборщик на сервере. Обновите cs2-cutter.",
+             { patch: p.patch ?? "?" });
+  }
+  return t("Демка не разбирается: ") + (p.detail || "");
 }
 
 const stateCell = (st) => st
