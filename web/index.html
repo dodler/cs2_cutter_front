@@ -377,6 +377,7 @@
     </div>
     <div class="actions">
       <button id="analyze">Разобрать демку</button>
+      <button id="demo-delete" class="ghost">Удалить демку</button>
       <span class="hint" id="demo-hint"></span>
     </div>
   </section>
@@ -523,6 +524,42 @@
     <div class="actions">
       <button id="host-add">Добавить хост</button>
       <span class="hint" id="host-hint"></span>
+    </div>
+  </section>
+
+  <section class="card" id="admin-settings-card" style="display:none">
+    <h2>Настройки записи · <span id="settings-host-name" class="hint"></span></h2>
+    <p class="hint" style="margin:-6px 0 14px" id="settings-help">
+      Действуют сразу и только на этот хост. Рендерить в 120 кадров нужно ради
+      плавного слоумо, а хранить 30 — больше ютуб всё равно не отдаёт.
+    </p>
+    <div class="row">
+      <div><label for="set-render-fps">Покадровый рендер, fps</label>
+        <input type="number" id="set-render-fps" min="0" max="240" step="1">
+        <p class="hint">0 — обычная запись в реальном времени; 120 — плавное слоумо, но задача идёт в 13–17 раз дольше клипа</p></div>
+      <div><label for="set-output-fps">Частота готового клипа, fps</label>
+        <input type="number" id="set-output-fps" min="0" max="240" step="1">
+        <p class="hint">Что уедет в библиотеку и на ютуб; кадры рендера прореживаются при сборке</p></div>
+    </div>
+    <div class="row">
+      <div><label for="set-maxrate">Потолок битрейта</label>
+        <input type="text" id="set-maxrate" placeholder="8M">
+        <p class="hint">8M для 1080p30, 12M для 1080p60 — рекомендации YouTube</p></div>
+      <div><label for="set-crf">Качество перекодирований (CRF)</label>
+        <input type="number" id="set-crf" min="14" max="32" step="1">
+        <p class="hint">Меньше — лучше и толще; размер всё равно ограничен потолком</p></div>
+      <div><label for="set-preset">Пресет графики CS2</label>
+        <select id="set-preset">
+          <option value="">не трогать</option>
+          <option value="high">high</option>
+          <option value="medium">medium</option>
+          <option value="low">low</option>
+        </select>
+        <p class="hint">Применится при следующем запуске игры</p></div>
+    </div>
+    <div class="actions">
+      <button id="settings-save">Сохранить</button>
+      <span class="hint" id="settings-hint"></span>
     </div>
   </section>
 
@@ -899,6 +936,34 @@ const EN = {
   "Укажите SSH-порт (из vast: ssh -p ПОРТ root@IP)": "Enter the SSH port (from vast: ssh -p PORT root@IP)",
   "Лог": "Log",
   "Хост подключён: {url}": "Host is set up: {url}",
+  "Настройки": "Settings",
+  "Удалить демку": "Delete demo",
+  "Не удалось удалить: ": "Could not delete: ",
+  "Демка удалена": "Demo deleted",
+  "Удалить демку {name} с хоста {host}? Файл, архив и копия для CS2 удаляются навсегда.":
+    "Delete demo {name} from host {host}? The file, the archive and the CS2 copy are removed for good.",
+  "Покадровый рендер, fps": "Frame-by-frame render, fps",
+  "Частота готового клипа, fps": "Final clip frame rate, fps",
+  "Потолок битрейта": "Bitrate ceiling",
+  "Качество перекодирований (CRF)": "Re-encode quality (CRF)",
+  "Пресет графики CS2": "CS2 graphics preset",
+  "не трогать": "leave alone",
+  "Сохранить": "Save",
+  "сохраняю…": "saving…",
+  "Сохранено, действует сразу": "Saved, applied immediately",
+  "Сохранено. {note}": "Saved. {note}",
+  "Настройки не прочитались: {err}": "Settings could not be read: {err}",
+  "Действуют сразу и только на этот хост. Рендерить в 120 кадров нужно ради плавного слоумо, а хранить 30 — больше ютуб всё равно не отдаёт.":
+    "Apply immediately, this host only. Rendering at 120 fps is what makes slow-mo smooth; storing 30 is all YouTube gives back anyway.",
+  "0 — обычная запись в реальном времени; 120 — плавное слоумо, но задача идёт в 13–17 раз дольше клипа":
+    "0 — plain real-time recording; 120 — smooth slow-mo, but a job takes 13–17x the clip length",
+  "Что уедет в библиотеку и на ютуб; кадры рендера прореживаются при сборке":
+    "What goes to the library and YouTube; render frames are decimated when assembling",
+  "8M для 1080p30, 12M для 1080p60 — рекомендации YouTube":
+    "8M for 1080p30, 12M for 1080p60 — YouTube recommendations",
+  "Меньше — лучше и толще; размер всё равно ограничен потолком":
+    "Lower is better and bigger; size is capped by the ceiling anyway",
+  "Применится при следующем запуске игры": "Applies on the next game launch",
 };
 
 // t("Раунд {n}", { n: 3 }) — перевод с подстановкой.
@@ -1306,6 +1371,38 @@ $("analyze").onclick = async () => {
     $("demo-hint").textContent = t("Не удалось разобрать демку");
   }
   $("analyze").disabled = false;
+};
+
+// Удаление демки. Уходит на тот хост, где она лежит: у каждой демки свой.
+// Сервер убирает заодно архив .bz2/.zst, кэш карты и копию для playdemo в
+// каталоге игры — иначе они копятся месяцами. Чужое он не находит (404), а
+// демку, которую сейчас нарезает задача, отдаёт 409 с причиной.
+$("demo-delete").onclick = async () => {
+  const item = state.demos[$("demo").value];
+  if (!item) return;
+  const label = demoLabel(item.d);
+  if (!confirm(t("Удалить демку {name} с хоста {host}? Файл, архив и копия для CS2 удаляются навсегда.",
+                 { name: label, host: item.host }))) return;
+  $("demo-delete").disabled = true;
+  try {
+    const url = `${item.host}/api/demo/${encodeURIComponent(item.d.id)}`;
+    const res = await authFetch(url, { method: "DELETE" });
+    if (!res.ok) throw new Error(await errText(res));
+    // Разбор этой демки больше не к чему привязать — прячем карточки, иначе
+    // «Разобрать» останется от удалённой демки и задача уйдёт в 404.
+    if (state.demoId === item.d.id) {
+      state.demoId = state.demoHost = state.player = null;
+      state.queuedRounds = new Map();
+      $("params-card").style.display = "none";
+      $("players-card").style.display = "none";
+      $("rounds-panel").style.display = "none";
+    }
+    $("demo-hint").textContent = t("Демка удалена");
+    await loadDemos();
+  } catch (err) {
+    $("demo-hint").textContent = t("Не удалось удалить: ") + err.message;
+  }
+  $("demo-delete").disabled = false;
 };
 
 function showPlayers(info, host) {
@@ -2075,7 +2172,8 @@ async function loadAdmin() {
         <td>${stateCell(states[i])}</td>
         <td>${states[i] ? esc(states[i].queue) : "—"}</td>
         <td><input type="checkbox" data-act="toggle" ${h.enabled ? "checked" : ""}></td>
-        <td>${h.enabled ? `<button class="ghost" data-act="restart">${t("Перезапустить CS2")}</button>` : ""}
+        <td><button class="ghost" data-act="settings">${t("Настройки")}</button>
+            ${h.enabled ? `<button class="ghost" data-act="restart">${t("Перезапустить CS2")}</button>` : ""}
             <button class="ghost" data-act="delete">${t("Удалить")}</button></td>
       </tr>`).join("");
     const note = $("admin-hosts-note");
@@ -2136,6 +2234,10 @@ $("admin-hosts").addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-act]");
   if (!btn) return;
   const row = btn.closest("tr");
+  if (btn.dataset.act === "settings") {
+    loadHostSettings(row.dataset.url);
+    return;
+  }
   if (btn.dataset.act === "restart") {
     // Перезапуск обрывает запись, которая идёт на хосте прямо сейчас.
     if (!confirm(t("Перезапустить CS2 на {url}? Текущая запись на нём оборвётся.", { url: row.dataset.url }))) return;
@@ -2151,6 +2253,66 @@ $("admin-hosts").addEventListener("click", async (e) => {
     hostsChanged();
   }
 });
+
+
+// ---------- настройки записи на хосте ----------
+// Живут на самом хосте (app/settings.py в cs2_cutter): там они и применяются,
+// а библиотека о них ничего не знает. Поэтому читаем и пишем прямо в хост —
+// как кнопка перезапуска CS2 рядом.
+let settingsHost = null;
+
+async function loadHostSettings(url) {
+  settingsHost = url;
+  $("admin-settings-card").style.display = "";
+  $("settings-host-name").textContent = url;
+  $("settings-hint").textContent = "";
+  try {
+    const res = await authFetch(url + "/api/admin/settings");
+    if (!res.ok) throw new Error(await errText(res));
+    const data = await res.json();
+    const v = data.values || {};
+    $("set-render-fps").value = v.CS2_RENDER_FPS ?? 0;
+    $("set-output-fps").value = v.CS2_OUTPUT_FPS ?? 30;
+    $("set-maxrate").value = v.CS2_VIDEO_MAXRATE || "";
+    $("set-crf").value = v.CS2_VIDEO_CRF ?? "";
+    $("set-preset").value = v.CS2_VIDEO_PRESET || "";
+    $("admin-settings-card").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (err) {
+    // Хост без нового эндпоинта (старая версия cs2_cutter) или недоступен —
+    // так и говорим, а не показываем пустую форму с нулями.
+    $("settings-hint").textContent = t("Настройки не прочитались: {err}", { err: err.message });
+  }
+}
+
+$("settings-save").onclick = async () => {
+  if (!settingsHost) return;
+  const btn = $("settings-save");
+  btn.disabled = true;
+  $("settings-hint").textContent = t("сохраняю…");
+  const body = {
+    CS2_RENDER_FPS: Number($("set-render-fps").value || 0),
+    CS2_OUTPUT_FPS: Number($("set-output-fps").value || 0),
+    CS2_VIDEO_MAXRATE: $("set-maxrate").value.trim() || "8M",
+    CS2_VIDEO_CRF: Number($("set-crf").value || 20),
+    CS2_VIDEO_PRESET: $("set-preset").value,
+  };
+  try {
+    const res = await authFetch(settingsHost + "/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(await errText(res));
+    const data = await res.json();
+    $("settings-hint").textContent = data.restart_required
+      ? t("Сохранено. {note}", { note: data.note || "" })
+      : t("Сохранено, действует сразу");
+  } catch (err) {
+    $("settings-hint").textContent = t("Ошибка: ") + err.message;
+  }
+  btn.disabled = false;
+  loadAdmin();
+};
 
 // ---------- подключение нового хоста ----------
 // Задачу ведёт библиотека (app/provision.py): SSH, пакеты, Steam, CS2,
